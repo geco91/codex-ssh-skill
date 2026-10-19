@@ -12,7 +12,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 EPOCH = 1792368000  # 2026-10-19 00:00:00 UTC; fixed archive metadata.
 INSTALLER_FILES = ['dependencies.lock.json', 'scripts/bootstrap-debian.sh',
-                   'scripts/setup.sh', 'scripts/configure-tunnel.py', 'scripts/check-upstreams.py']
+                   'scripts/setup.sh', 'scripts/configure-tunnel.py', 'scripts/tunnel_service.py', 'scripts/check-upstreams.py']
 LAUNCHER = '''#!/usr/bin/env bash
 # Versioned Codex SSH installer. Run on your local Debian/Proxmox host.
 set -Eeuo pipefail

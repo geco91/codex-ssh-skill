@@ -9,7 +9,7 @@ The verification command rejects drift between that lock and the actual installe
 | --- | --- | --- |
 | [slepp/ssh-mcp](https://github.com/slepp/ssh-mcp) | Package 0.2.0; commit `37381ddc68a941b62ed8557dcbb5644dc3b6c5fd` | Full source archive SHA-256 |
 | [openai/tunnel-client](https://github.com/openai/tunnel-client) | 0.0.16 | Separate amd64/arm64 release-archive SHA-256 |
-| Guided installer bundle | Repository release 0.2.0 | SHA-256 embedded in its versioned launcher |
+| Guided installer bundle | Repository release 0.3.0 | SHA-256 embedded in its versioned launcher |
 | GitHub Actions checkout | Full commit in the workflow | No floating action tag |
 
 SHA-256 values are in the lock file; do not replace them just because a download
@@ -28,7 +28,7 @@ python3 scripts/check-upstreams.py --offline
 python3 scripts/check-upstreams.py
 ```
 
-Build versioned downloads with `python3 scripts/package-release.py --version 0.2.0`
+Build versioned downloads with `python3 scripts/package-release.py --version 0.3.0`
 and verify them against the source with the same command plus `--check`. The
 builder refuses to replace different existing versioned download bytes; use a
 new release version for published changes. The generated launcher embeds the

@@ -54,7 +54,9 @@ MCP URL, expose host SSH to the internet or copy a private key into Codex.
 
 ## 3. Connect and test
 
-Keep the client running and follow the current
+The installer enables `codex-ssh-tunnel.service` for unattended startup and
+recovery. Check it with `python3 /opt/codex-ssh/configure-tunnel.py --status`.
+Follow the current
 [official product connection instructions](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels#connect-from-chatgpt).
 The documented ChatGPT path is [Plugins](https://chatgpt.com/plugins) → add custom
 MCP server → **Tunnel**. Select your existing tunnel, set the requested product
@@ -111,7 +113,7 @@ that is your intended first-contact policy.
 | --- | --- |
 | No Tunnels settings | Platform organization, tunnel permissions and account availability |
 | Tunnel absent from the product | Correct workspace/organization association and operator Read + Use |
-| Runtime exits or is not ready | Local private diagnostic log, native runtime status, key scope, outbound HTTPS |
+| Runtime exits or is not ready | systemctl/journalctl for codex-ssh-tunnel.service, key scope, outbound HTTPS |
 | `Permission denied` | Documented alias, target account and key; this alone does not prove a password is wrong |
 | New host key | Existing pin first; target-specific authorized TOFU only for first contact |
 | Changed host key | Stop and investigate; do not remove the old pin automatically |

@@ -13,8 +13,8 @@ provisioning test VMs and running tests. The tools come from
 OpenAI products without a public MCP listener.
 
 [Get started](#install-on-your-local-host) · [Setup guide](docs/onboarding.md) ·
-[Download skill ZIP](https://raw.githubusercontent.com/geco91/codex-ssh-skill/v0.2.0/downloads/v0.2.0/codex-ssh.zip) ·
-[SHA-256](downloads/v0.2.0/SHA256SUMS) · [Releases](https://github.com/geco91/codex-ssh-skill/releases)
+[Download skill ZIP](https://raw.githubusercontent.com/geco91/codex-ssh-skill/v0.3.0/downloads/v0.3.0/codex-ssh.zip) ·
+[SHA-256](downloads/v0.3.0/SHA256SUMS) · [Releases](https://github.com/geco91/codex-ssh-skill/releases)
 
 ## How it fits together
 
@@ -41,7 +41,7 @@ You need Debian 12/13 or a supported Debian-based Proxmox host, systemd,
 amd64/arm64, root access, `curl` and CA certificates. Run this **on that local host**:
 
 ```bash
-curl --proto '=https' --tlsv1.2 -fsSL https://raw.githubusercontent.com/geco91/codex-ssh-skill/v0.2.0/scripts/install.sh | sudo bash
+curl --proto '=https' --tlsv1.2 -fsSL https://raw.githubusercontent.com/geco91/codex-ssh-skill/v0.3.0/scripts/install.sh | sudo bash
 ```
 
 Already root, as on many Proxmox consoles? Replace `sudo bash` with `bash`.
@@ -55,12 +55,14 @@ The guide will:
 2. On Proxmox, offer optional VM administration. This grants **full host-root
    access** through a separate local SSH key; leave it off for an unprivileged setup.
 3. Ask for your **tunnel ID** and **runtime API key** using a hidden key prompt.
-4. Start the tunnel using the client's native runtime manager and check its status.
+4. Enable the systemd tunnel service for unattended boot/recovery and check readiness.
 5. Print the remaining product-connection and skill-installation steps.
 
 You can skip the tunnel prompt and configure it later. An existing setup is
 preserved; the guide does not rotate keys or take over unrelated runtimes.
-Details and reserved paths: [local installer](docs/bootstrap.md).
+Details, migration and status/restart/disable commands: [local installer](docs/bootstrap.md#runtime-lifecycle).
+Version 0.3.0 is a review prerelease for issue #3; deployment to the existing host
+and a real Debian/Proxmox reboot remain separate acceptance steps.
 
 ### Get your tunnel ID and runtime key
 
@@ -88,8 +90,8 @@ the long-lived runtime.
    documented ChatGPT entry point is [Plugins](https://chatgpt.com/plugins).
    Follow the [official connection steps](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels#connect-from-chatgpt)
    and verify the tools in the actual Codex surface you intend to use.
-2. Download the [skill ZIP](https://raw.githubusercontent.com/geco91/codex-ssh-skill/v0.2.0/downloads/v0.2.0/codex-ssh.zip)
-   and its [checksum](downloads/v0.2.0/SHA256SUMS). Import it where skill ZIP import
+2. Download the [skill ZIP](https://raw.githubusercontent.com/geco91/codex-ssh-skill/v0.3.0/downloads/v0.3.0/codex-ssh.zip)
+   and its [checksum](downloads/v0.3.0/SHA256SUMS). Import it where skill ZIP import
    is supported. For Codex CLI/IDE, extract the `codex-ssh` folder into your
    project's `.agents/skills/`. [Skill installation details](docs/onboarding.md#4-install-the-skill).
 3. Enable the connection and skill, then give Codex a task:
