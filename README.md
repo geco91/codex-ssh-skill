@@ -6,14 +6,14 @@ Tests laufen direkt auf Debian oder in Gästen des privaten Proxmox. Bestehendes
 OpenSSH, SSH-MCP und Tunnel-Client werden verwendet, kein neuer Orchestrator.
 Lizenz: vorhandene [MIT-Lizenz](LICENSE), auch für die neuen eigenen Dateien.
 
-Erste Version: **v0.1.0** ·
-[Skill-ZIP herunterladen](https://raw.githubusercontent.com/geco91/codex-ssh-skill/v0.1.0/downloads/v0.1.0/codex-ssh.zip) ·
-[SHA-256-Prüfsumme](downloads/v0.1.0/SHA256SUMS) ·
+Aktuelle Version: **v0.1.1** ·
+[Skill-ZIP herunterladen](https://raw.githubusercontent.com/geco91/codex-ssh-skill/v0.1.1/downloads/v0.1.1/codex-ssh.zip) ·
+[SHA-256-Prüfsumme](downloads/v0.1.1/SHA256SUMS) ·
 [Versionshinweise](CHANGELOG.md).
 
-Der Arbeitsstand nach v0.1.0 berücksichtigt den ersten erfolgreichen
-MCP-/Gast-/HTTP-Test. Das versionierte v0.1.0-ZIP bleibt unverändert; aktuelle
-Anweisungen einschließlich TOFU und Zugangsermittlung liegen im Skillordner.
+Version v0.1.1 berücksichtigt den ersten erfolgreichen MCP-/Gast-/HTTP-Test
+und enthält die überarbeiteten Anweisungen zu TOFU und Zugangsermittlung.
+Die veröffentlichten v0.1.0-Dateien bleiben unverändert.
 
 ## Installation und Nutzung
 
@@ -26,7 +26,7 @@ Ein Skill installiert oder registriert keine MCP-Verbindung. Die automatische
 Erkennung im gewünschten App/Web-Cloud-Task muss dort separat geprüft werden.
 Für einen Skill-Import per ZIP die verlinkte Datei verwenden; sie enthält den
 Ordner `codex-ssh` mit Einstieg, Referenzen und MIT-Lizenz.
-ZIP und Prüfsumme liegen versioniert unter `downloads/v0.1.0/` im Repository.
+ZIP und Prüfsumme liegen versioniert unter `downloads/v0.1.1/` im Repository.
 
 Beispielauftrag, sämtliche Namen/Pfade/SHA sind **Platzhalter**:
 

@@ -1,6 +1,6 @@
 # Versionshinweise
 
-## Unveröffentlicht
+## v0.1.1 — 2026-10-19
 
 - Dokumentierte SSH-Aliase und vorhandene Schlüssel vor neuen Zugangsrückfragen
   ermitteln; Tunnel-, Benutzeranmeldung und Hostschlüssel klar unterscheiden.
@@ -15,8 +15,8 @@
 - Ersten erfolgreichen Produkt-MCP-/Gast-/HTTP-Smoke-Test dokumentieren;
   frühere Prüfstände und noch offene Abnahmen getrennt halten.
 
-Installer und veröffentlichte v0.1.0-Downloads bleiben unverändert. Der aktuelle
-Skill-Arbeitsstand wird aus `.agents/skills/codex-ssh/` übernommen.
+Installer und veröffentlichte v0.1.0-Downloads bleiben unverändert. Aktualisierter
+Skill-Download und Prüfsumme liegen unter `downloads/v0.1.1/`.
 
 ## v0.1.0 — 2026-10-19
 

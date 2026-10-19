@@ -187,8 +187,7 @@ manuelle Konsistenzprüfung des Texts, keine automatische Modell-Evaluation:
 | HTTP 200, aber falscher Inhalt oder unfertiges Provisioning | Keine vollständige Erfolgsmeldung; Provisioning, Dienst, Login und erwarteten Inhalt separat prüfen |
 
 Veröffentlichte v0.1.0-ZIP/Prüfsumme und Installer bleiben unverändert. Aktuelle
-Anweisungen werden aus dem Skillordner übernommen; der veröffentlichte Download
-ist weiterhin der frühere Versionsstand.
+Anweisungen liegen im Skillordner und im neuen v0.1.1-Download.
 
 Für diesen Dokumentationsstand erneut lokal erfolgreich ausgeführt: alle sechs
 vorhandenen Bootstrap-Unittests (einschließlich effektiver sshd-Konfiguration),
