@@ -1,6 +1,12 @@
 # Recherche und Kompatibilitätsgrenzen
 
 Geprüft am 19.10.2026; Beobachtungen sind Momentaufnahmen.
+Die folgenden Abschnitte dokumentieren die ursprüngliche Auswahl und damaligen
+Werkzeuggrenzen. Der spätere erfolgreiche Produkt-MCP-/Gast-/HTTP-Smoke-Test
+steht im [Live-Protokoll](live-testproxmox.md#erste-produkt-mcp-gast-abnahme).
+Die damalige Ablehnung von TOFU ist keine aktuelle Betriebsregel: ausdrücklich
+freigegebenes zielbezogenes TOFU folgt heute dem
+[Zugangsablauf](../.agents/skills/codex-ssh/references/zugang.md).
 
 ## Produktunterstützung
 

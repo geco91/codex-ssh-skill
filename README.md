@@ -11,6 +11,10 @@ Erste Version: **v0.1.0** ·
 [SHA-256-Prüfsumme](downloads/v0.1.0/SHA256SUMS) ·
 [Versionshinweise](CHANGELOG.md).
 
+Der Arbeitsstand nach v0.1.0 berücksichtigt den ersten erfolgreichen
+MCP-/Gast-/HTTP-Test. Das versionierte v0.1.0-ZIP bleibt unverändert; aktuelle
+Anweisungen einschließlich TOFU und Zugangsermittlung liegen im Skillordner.
+
 ## Installation und Nutzung
 
 Der Skill liegt repositorylokal in
@@ -38,6 +42,28 @@ oder vorhandenen Lauf lesen → begrenzt Logs/Endstatus lesen.
 Beispielresultat (kein echter Test):
 `<ALIAS> | <SHA> | <LAUF-ID> | Fehler; Exitcode 1; stderr: <bereinigter Testfehler>`.
 Ohne erreichbare Werkzeuge lautet das Ergebnis „unbekannt: SSH-MCP nicht verfügbar“.
+
+## Bereits eingerichteten Zugang verwenden
+
+Vor neuen Passwort-/Schlüsselfragen zuerst Projektkontext und Einrichtungsprotokoll
+lesen. Bei der hier dokumentierten Bootstrap-Installation läuft MCP als
+`codex-test`. Für beauftragte Proxmox-Verwaltung ist mit `--proxmox-admin` der
+SSH-Alias `codex-proxmox-host` eingerichtet: root über `127.0.0.1:22222`, mit
+bereits vorhandenem separatem Schlüssel und gebundenem Hostschlüssel. Der Alias
+`codex-test-local` ist dagegen der unprivilegierte Selbsttest auf demselben Host.
+Beides sind keine Defaults für andere Installationen oder beliebige Verbindungen.
+
+Private Schlüssel und SSH-Konfiguration liegen auf dem MCP-Host, nicht im
+Codex-Cloud-Workspace. Das verwendete OpenSSH-MCP hat kein eigenes Passwortfeld;
+dies beweist kein grundsätzliches Verbot von Passwortanmeldung. Der separate
+Bootstrap-Listener erlaubt tatsächlich nur Schlüssel. Tunnel-Key,
+SSH-Anmeldeschlüssel und SSH-Hostschlüssel erfüllen verschiedene Aufgaben.
+
+Vorhandene geprüfte Hostschlüssel bevorzugen. Für ein eindeutig beauftragtes
+neues Ziel ist nach ausdrücklicher Nutzerfreigabe TOFU mit `accept-new` möglich;
+danach denselben gespeicherten Schlüssel mit `yes` prüfen. Ein geänderter
+Schlüssel wird nicht automatisch übernommen. Details und Identitäts-Erstaufnahme:
+[Zugang und Hostvertrauen](.agents/skills/codex-ssh/references/zugang.md).
 
 ## Debian oder Test-Proxmox initialisieren
 
@@ -99,7 +125,7 @@ und Tunnel, mit eigenen SSH-Alias-/Identitätsdaten. Details:
 ## Minimaler Betriebsaufbau
 
 Voraussetzungen: vorhandener SSH-Zugang zur Debian-VM, dediziertes Testkonto mit
-minimalen Rechten, unabhängig verifizierter Hostschlüssel und Maschinen-ID,
+minimalen Rechten, geklärter Vertrauensmodus und Maschinenidentität,
 freigegebener Checkout und Testbefehl. Ein privater Linux-Host, auch die VM selbst,
 betreibt den vorhandenen MCP-Server und `openai/tunnel-client`.
 Dieser Host erreicht die VM intern per SSH und OpenAI ausgehend per HTTPS/443.
@@ -112,15 +138,18 @@ rsync/tmux sind nur für deren optionale Funktionen nötig. Version/Commit vor d
 späteren Betrieb fixieren; geprüfte Stände stehen in [Recherche](docs/recherche.md).
 Das Bootstrap wurde inzwischen auf dem ausdrücklich beauftragten Test-Proxmox
 installiert und dessen lokale SSH-Prüfungen bestanden. Ablauf und Grenzen:
-[Live-Protokoll](docs/live-testproxmox.md). Plain-Debian-Installation und
-Tunnel-/Codex-End-to-End-Verbindung bleiben separat abzunehmen.
+[Live-Protokoll](docs/live-testproxmox.md). Dort ist inzwischen auch der erste
+erfolgreiche Produkt-MCP-Aufruf mit Gastanlage und HTTP-Test dokumentiert.
+Plain-Debian-Bootstrap und Wiederaufnahme nach Sitzungswechsel bleiben offen.
 
 Die spätere Betreiberin/der Betreiber:
 
 1. Installiert den gewählten vorhandenen Server in einer eigenen Umgebung;
    dessen stdio-Startbefehl ist der absolute Pfad zum installierten `ssh-mcp`.
 2. Hinterlegt auf dem MCP-Host SSH-Alias, Testkonto, privaten Schlüssel/Agent und
-   separat verifizierten known_hosts-Eintrag. Erzwingt `StrictHostKeyChecking yes`,
+   bevorzugt separat verifizierten known_hosts-Eintrag. Alternativ den oben
+   beschriebenen ausdrücklich freigegebenen TOFU-Erstkontakt durchführen und
+   dessen Status lokal festhalten. Danach `StrictHostKeyChecking yes`,
    `BatchMode yes`, kurze Verbindungszeit und deaktiviertes Agent-Forwarding.
    Keine ungeprüfte `ssh-keyscan`-Ausgabe als Vertrauensanker übernehmen.
 3. Verwendet beim vorhandenen Tunnel-Client zuerst `tunnel-client help quickstart`.
@@ -139,8 +168,9 @@ Die spätere Betreiberin/der Betreiber:
 Die Zielzuordnung ist eine lokale Konvention für diesen Skill, kein automatisch
 ausgewertetes Serverformat. Lege sie z. B. in `.local/target.toml` an (ignoriert,
 nicht befüllt mitgeliefert). Sie enthält MCP-Verbindungsname/Implementierung,
-genauen SSH-Alias und Konto, bekannten Hostschlüssel-Fingerprint und Nachweis
-seiner Prüfung, erwartete `/etc/machine-id`, absoluten Checkout-/Logpfad und
+genauen SSH-Alias und Konto, bekannten Hostschlüssel-Fingerprint und Vertrauensmodus
+(vorab geprüft oder TOFU mit zielbezogener Freigabe), Soll- oder erstmals
+erfasste `/etc/machine-id`, Arbeits-/Logpfad, bei Code-Tests auch Checkout und
 freigegebenen Testbefehl/Arbeitsumfang. Die Pfade des SSH-Clients und known_hosts
 beziehen sich auf den **privaten MCP-Host**. Für mehrere Arbeitskontexte eine
 explizite Zuordnung bereitstellen, keine automatische Wahl des ersten Hosts.
@@ -165,18 +195,19 @@ Ein MCP-Server mit eigener Policy ist eine Alternative, wenn das erforderlich is
 
 ## Kompatibilität und Abnahme
 
-Repositoryformat und generelle stdio-/Tunnel-Eignung sind dokumentiert. Auf dem
-Test-Proxmox sind die Komponenten installiert, lokale SSH-Prüfungen bestanden.
-Hier sind weiterhin keine SSH-MCP-Werkzeuge oder eine passende Tunnel-Zielbindung
-exponiert. **Keine nachgewiesene Codex-Cloud-End-to-End-Kompatibilität.**
-In der später ausdrücklich beauftragten AITL-Runde wurde die Kommunikation
-einschließlich menschlich zurückgeteilter Ausgabe mit einem Test-Proxmox geprüft.
-Das belegt den AITL-Weg, weiterhin keine SSH-MCP-/Tunnel-Verbindung aus Codex.
+Repositoryformat und generelle stdio-/Tunnel-Eignung sind dokumentiert.
+Am 19.10.2026 wurden nach der AITL-Einrichtung tatsächliche SSH-MCP-Aufrufe über
+die angebotene Produktverbindung ausgeführt: Hostidentität, Debian-13-Gastanlage,
+geprüfter Gastzugang per Schlüssel und Passwort sowie Hello-World-HTTP 200.
+Dies ist ein bestandener End-to-End-Smoke-Test dieser Verbindung, keine allgemeine
+Produktzertifizierung. Ein separater Codex-Cloud-Task, vollständige Plain-Debian-
+Bootstrap-Installation, Wiederaufnahme nach Neustart/Sitzungswechsel und ein
+Projekt-Integrationstest mit Commit-SHA bleiben separat zu prüfen.
 Vorhandenes Codex-Abo bevorzugen; Zugriffsrechte/Verfügbarkeit und etwaige Kosten
 der Tunnel-Nutzung im eigenen Konto prüfen. Keine Agents-/Responses-API als
 stillschweigender Ersatz und keine Zusage, alle Dienste seien im Abo enthalten.
 
 [Recherche mit Quellen](docs/recherche.md) ·
-[Lokale Prüfungen und offene Live-Abnahme](docs/pruefungen.md).
+[Lokale Prüfungen und Stand der Live-Abnahme](docs/pruefungen.md).
 BI-MC „Codex SSH Zugriff“ ist der Hintergrund; setup-intranet und bestehende
 BI-MC-/M8-/AITL-Läufe werden durch diesen Stand nicht verändert.

@@ -13,13 +13,17 @@ die aktuelle Verbindung. Immer zuerst deren tatsächliches Schema lesen.
 
 ## Kleiner Befehl (slepp)
 
-Nur nach Konfigurations- und Hostschlüsselprüfung: `ssh_exec` mit zugeordnetem
+Zuerst [Zugang und Vertrauensmodus](zugang.md) klären. Im normalen Betrieb:
+`ssh_exec` mit zugeordnetem
 `target`, `cwd`, `strict_host_key_checking: "yes"`, lokalem `known_hosts_file`,
 `timeout: 10`, `tty: false`. `extra_ssh_args: ["-o", "BatchMode=yes",
 "-o", "ConnectTimeout=5"]` verhindert interaktive Anmeldung und lange Verbindungsversuche.
 Alle Ziel-/Pfadangaben aus lokaler Konfiguration übernehmen, nicht erraten.
 `stdout`, `stderr`, `exit_code`, `timed_out` getrennt auswerten.
 Exitcode 255 ist häufig SSH-/Transportfehler; nicht automatisch Testfehler nennen.
+Für ausdrücklich freigegebenes TOFU beim ersten Identitätsaufruf stattdessen
+`strict_host_key_checking: "accept-new"` verwenden, danach `yes`. Vorhandene
+Alias-Konfiguration übernehmen; nicht ohne Anlass einen neuen Login einrichten.
 
 `ssh_exec` hat am geprüften Stand keinen allgemeinen Ausgabe-Cap als Argument.
 Potentiell große Ausgabe deshalb in eine geschützte Datei im freigegebenen
@@ -71,8 +75,13 @@ eindeutig zugeordneten Lauf und nur im erteilten Umfang; kein globales `pkill`.
 
 `Zielalias | SHA (+ dirty falls zutreffend) | Test/Lauf-ID | Erfolg/Fehler/Timeout/unbekannt`
 
-Dazu Exitcode oder „nicht verfügbar“, kurze stdout-/stderr-Belege,
+Dazu Vertrauensmodus (vorab geprüft / TOFU-Erstaufnahme), Exitcode oder
+„nicht verfügbar“, kurze stdout-/stderr-Belege,
 Ausgabevollständigkeit und lokale Logreferenz. Keine privaten Identitätswerte
 oder Geheimnisse kopieren. Noch laufend: „unbekannt, läuft noch“, mit nächstem
 begrenztem Statusschritt. Ein Timeout sagt zunächst nur etwas über das jeweilige
 Zeitlimit aus, nicht über das Ende des Remote-Tests.
+
+Für einen reinen VM-/Webserver-Auftrag statt einer nicht vorhandenen Code-SHA
+Image-Version und Prüfsumme festhalten. Provisioning-Endstatus, Gastidentität,
+getestete Anmeldeart und HTTP-Status mit erwartetem Seiteninhalt getrennt belegen.
