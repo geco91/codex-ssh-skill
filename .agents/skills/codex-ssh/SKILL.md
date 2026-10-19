@@ -5,25 +5,34 @@ description: Nutze vorhandenes SSH-MCP für Debian-Tests oder einen zugeordneten
 
 # Codex SSH
 
-1. Lies Repository-Anweisungen, Arbeitsstand und die ausdrücklich bereitgestellte
-   lokale Zielkonfiguration. Prüfe die in **dieser Sitzung** angebotenen
+1. Lies Repository-Anweisungen, Arbeitsstand, README, Einrichtungsprotokoll und
+   bereitgestellte lokale Zielkonfiguration. Suche zuerst den dokumentierten,
+   diesem Auftrag zugeordneten SSH-Alias; frage erst danach nach fehlenden Daten.
+   Lies [Zugang, Anmeldung und Hostvertrauen](references/zugang.md).
+   Prüfe die in **dieser Sitzung** angebotenen
    MCP-Werkzeuge und ihre Schemas. Halte dokumentierte Unterstützung, sichtbare
    Werkzeuge und bestandene Live-Aufrufe auseinander. ChatGPT/AITL-Verfügbarkeit
    beweist keinen SSH-Zugang im Codex-Cloud-Task. Fehlen Verbindung, Ziel oder
    Fähigkeiten, melde genau die Lücke; erfinde keine Adresse oder Werkzeugnamen.
    Wechsle nicht eigenmächtig zu direktem SSH, AITL oder einer kostenpflichtigen API.
 2. Verwende ausschließlich das zugeordnete Ziel, Konto und Arbeitsverzeichnis.
-   Vor dem ersten Remote-Aufruf muss eine vertrauenswürdige Hostschlüsselbindung
-   vorliegen: OpenSSH mit `StrictHostKeyChecking=yes` und vorab geprüftem
-   known_hosts-Eintrag oder gleichwertiger Server-Pin. Kein TOFU, `accept-new`,
-   abgeschalteter Check oder Übernehmen eines unerwarteten Schlüssels.
-   Fehlt der Nachweis, stoppe vor dem Verbindungsversuch.
+   Nutze bevorzugt vorhandenes known_hosts/Server-Pin mit strikter Prüfung.
+   Fehlt nur der Erstkontakt-Schlüssel, ist nach ausdrücklicher Nutzerfreigabe
+   für dieses Ziel TOFU mit `accept-new` zulässig. Speichere den erstmals
+   gesehenen Schlüssel dauerhaft auf dem MCP-Host und verwende danach `yes`.
+   Eine bereits erteilte TOFU-Freigabe nicht erneut abfragen. TOFU ist keine
+   unabhängige Identitätsprüfung. Bei geändertem Schlüssel stoppen; keinen
+   bestehenden Eintrag automatisch löschen, ersetzen oder die Prüfung abschalten.
 3. Führe zunächst nur den freigegebenen Identitätscheck aus: etwa
    `cat /etc/machine-id; id -un; pwd` mit begrenzter Laufzeit. Vergleiche mit
-   unabhängig hinterlegten Sollwerten, einschließlich Repository-Pfad; ein
-   Hostname allein reicht nicht. Rohwerte gehören in lokale Konfiguration,
-   Ergebnistext nur „Identität stimmt überein“. Bei Abweichung/Unklarheit keine
-   weiteren Befehle. Wiederhole nach Verbindungs- oder Zielwechsel.
+   vorhandenen, unabhängig hinterlegten Sollwerten für Maschine, Konto und
+   Arbeitsverzeichnis. Bei Hostverwaltung ist kein Projekt-Checkout erforderlich;
+   für Code-Tests zusätzlich den Repository-Pfad prüfen. Bei freigegebenem TOFU
+   ohne Soll-Maschinen-ID die beobachtete Identität als Erstaufnahme lokal
+   festhalten und im bereits autorisierten Umfang weiterarbeiten; nicht als
+   unabhängige Übereinstimmung ausgeben. Sonst bei fehlender Zuordnung oder bei
+   Abweichung stoppen. Rohwerte bleiben lokal; im Ergebnis Vertrauensmodus und
+   Prüfstatus nennen. Wiederhole den Check nach Verbindungs- oder Zielwechsel.
    Erkenne danach Debian oder Proxmox anhand von `/etc/pve`, `pveversion` und
    `qm`; ein Debian-Release oder PVE-Kernel allein entscheidet das nicht.
    Bei Proxmox lies [Host, Test-VMs und Wiederaufnahme](references/proxmox.md).
@@ -32,12 +41,17 @@ description: Nutze vorhandenes SSH-MCP für Debian-Tests oder einen zugeordneten
    als eigenes Ziel; kein stiller Wechsel von Host-Root zur Test-Shell.
 4. Ordne den nächsten Befehl kurz ein: lesen, Dateien ändern, Software installieren
    oder längeren Test starten. Nutze den schon erteilten Umfang und die vorhandenen
-   Rechte; gedeckte Routine braucht keine wiederholte Zustimmung. Neue Ziele,
+   Rechte; Identitätscheck, Bestandslesen, beauftragte VM-Konfiguration und
+   zugehörige Funktionstests brauchen keine wiederholte Zustimmung. Kurze
+   Fortschrittsmeldungen sind keine Freigabefragen. Neue Ziele,
    zusätzliche Rechte, Installation oder destruktive Schritte außerhalb des
    Auftrags konkret benennen und bis zur Freigabe auslassen. Keine Policy umgehen.
 5. Setze endliche Timeouts und begrenze Ausgaben. Nutze nichtinteraktive Befehle,
-   normalerweise ohne PTY: keine Pager, Editoren, Passwortprompts, `tail -f` oder
-   unbegrenzten synchronen Warteaufrufe. Trenne stdout, stderr, Exitcode, Signal,
+   normalerweise ohne PTY: keine Pager, Editoren, unbedienten Passwortprompts,
+   `tail -f` oder unbegrenzten synchronen Warteaufrufe. Nutze für erforderliche
+   Passworttests nur einen vorhandenen unterstützten Weg ohne Secret-Ausgabe;
+   technische Grenzen und ungeprüfte Logins ausdrücklich melden.
+   Trenne stdout, stderr, Exitcode, Signal,
    Timeout, MCP-/SSH-Fehler und abgeschnittene Ausgabe. Fehlende Felder bleiben
    unbekannt. Große Logs gezielt nach Fehlern oder in Zeilen-/Bytebereichen lesen.
 6. Für längere Tests lies [Ablauf und Werkzeugzuordnung](references/ablauf.md).
@@ -48,7 +62,9 @@ description: Nutze vorhandenes SSH-MCP für Debian-Tests oder einen zugeordneten
 7. Melde Erfolg nur mit abgeschlossenem relevanten Test und Exitcode 0, Fehler bei
    belegtem Testfehler, Timeout bei belegtem Zeitlimit, sonst unbekannt. Ein gestarteter
    Prozess, Shell-Prompt oder erfolgreicher MCP-Aufruf ist kein bestandener Test.
-   Nenne SHA, Test, Status, Exitcode soweit bekannt und knappe Belege/Lücken.
+   Nenne SHA bei Code-Tests, sonst Image-Version/Prüfsumme, Test, Status und
+   Exitcode soweit bekannt. Für einen Webserver-Auftrag zählen fertiges
+   Provisioning, Gast-Login sowie HTTP-Status und erwarteter Seiteninhalt.
 
 Keine Schlüssel, Tokens, vollständigen Umgebungen oder echten Zugangsdaten in
 Git, Skill, öffentliche Beispiele oder normale Ergebnisberichte schreiben.

@@ -1,5 +1,23 @@
 # Versionshinweise
 
+## v0.1.1 — 2026-10-19
+
+- Dokumentierte SSH-Aliase und vorhandene Schlüssel vor neuen Zugangsrückfragen
+  ermitteln; Tunnel-, Benutzeranmeldung und Hostschlüssel klar unterscheiden.
+- Zielbezogen ausdrücklich freigegebenes TOFU mit `accept-new`, dauerhaftem
+  known_hosts und anschließend `yes`; keine automatische Schlüsselrotation.
+- Identitäts-Erstaufnahme ohne Soll-Maschinen-ID als TOFU kennzeichnen; bei
+  Hostverwaltung keinen unnötigen Projekt-Checkout verlangen.
+- Gedeckte VM-Routine ohne wiederholte Freigabefragen, gespeicherte Boot-/Disk-/
+  Netzkonfiguration kontrollieren und VLAN-Anschluss von Gast-Tag unterscheiden.
+- Provisioning, tatsächliche Gast-Anmeldearten und erwartete HTTP-Antwort getrennt
+  prüfen und in der Wiederanlaufakte dokumentieren.
+- Ersten erfolgreichen Produkt-MCP-/Gast-/HTTP-Smoke-Test dokumentieren;
+  frühere Prüfstände und noch offene Abnahmen getrennt halten.
+
+Installer und veröffentlichte v0.1.0-Downloads bleiben unverändert. Aktualisierter
+Skill-Download und Prüfsumme liegen unter `downloads/v0.1.1/`.
+
 ## v0.1.0 — 2026-10-19
 
 Erster veröffentlichter Stand für vorhandenes SSH-MCP über Secure MCP Tunnel.

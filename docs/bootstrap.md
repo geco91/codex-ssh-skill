@@ -3,7 +3,8 @@
 Ergänzung zum ursprünglichen Skillauftrag: ein öffentlich bereitstellbares
 Installationsskript vorbereiten. Anschließend wurde dessen Installation auf dem
 Test-Proxmox ausdrücklich beauftragt und über AITL ausgeführt; siehe
-[Live-Protokoll](live-testproxmox.md). Kein Push wurde durchgeführt.
+[Live-Protokoll](live-testproxmox.md). Der Installer bleibt unverändert; die
+spätere MCP-/VM-Abnahme ist dort als eigener Schritt dokumentiert.
 
 ## Was der erste manuelle Schritt erledigt
 
@@ -42,6 +43,14 @@ Das Skript:
 Für spätere Sitzungen liegt außerdem `/opt/codex-ssh/README.txt` mit Plattform,
 Alias-/Programm-/Konfigurationspfaden und Wiederaufnahmehinweisen auf der Maschine.
 Der Agent findet die Gast-Logins danach im jeweiligen VM-Description-Block.
+
+Für die Nutzung einer bereits eingerichteten Installation zuerst
+[Zugang und Hostvertrauen](../.agents/skills/codex-ssh/references/zugang.md) lesen.
+Das MCP stellt den SSH-Client auf diesem privaten Host bereit; seine Aliase und
+Schlüssel werden dort ausgewertet. Der Agent muss sie nicht nochmals in die
+Cloud kopieren. Ein normales Root-Passwort ist für den vorhandenen Admin-Alias
+nicht erforderlich. Das Manifest bleibt eine lokale Identitätsreferenz; nach
+TOFU beobachtete Angaben sind keine unabhängige Erstverifikation.
 
 Auf Proxmox gibt es zwei explizite Installationsvarianten:
 

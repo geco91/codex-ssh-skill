@@ -1,14 +1,17 @@
-# Prüfungen und offene Live-Abnahme
+# Prüfungen und Stand der Live-Abnahme
 
-Stand 19.10.2026. Zunächst ausschließlich lokale Prüfungen; die später ausdrücklich
-beauftragte AITL-Leserunde ist unten getrennt dokumentiert. Upstream-Checkouts
-liegen nur im Recherchebereich außerhalb dieses Repositorys.
+Stand 19.10.2026. Die historischen Abschnitte dokumentieren lokale Prüfungen und
+die anschließende AITL-Runde. Maßgeblich für den inzwischen hinzugekommenen
+Produkt-MCP-/Gast-/HTTP-Nachweis ist das [Live-Protokoll](live-testproxmox.md).
 
 Aktuell: Installation auf dem beauftragten Test-Proxmox und lokale MCP-/SSH-
-Prüfung erfolgreich (`BOOTSTRAP_EXIT=0`, `MCP_LOCAL_OK`). Tunnel-Verbindung aus
-Codex und Gast-Tests offen. Details im [Live-Protokoll](live-testproxmox.md).
+Prüfung erfolgreich (`BOOTSTRAP_EXIT=0`, `MCP_LOCAL_OK`). Anschließend bestanden:
+Host- und Gastzugang über die angebotenen Produkt-MCP-Werkzeuge, Debian-13-VM-
+Anlage, fertiges Cloud-Init, Schlüssel-/Passwort-Login und Hello-World-HTTP 200.
+Offen bleiben insbesondere ein separater Codex-Cloud-Task, Projekt-Tests mit
+Commit-SHA, Wiederaufnahme nach Sitzungswechsel sowie Plain-Debian-Bootstrap.
 
-## Lokale Prüfung
+## Historisch: erste lokale Prüfung
 
 Am slepp-Commit `37381ddc68a941b62ed8557dcbb5644dc3b6c5fd` wurden sechs
 vorhandene Tests ausgeführt, alle erfolgreich (8,061 Sekunden):
@@ -50,12 +53,14 @@ Markdown-Verweise, Frontmatter, kurze Einstiegsdatei, Git-Diff und ungewollte
 Zugangsdaten wurden lokal geprüft. Keine VM-/MCP-Installation, Docker-SSH-Testserver,
 Tunnel-Konfiguration, Push oder Veröffentlichung vorgenommen.
 
-## Offene Live-Abnahme
+## Weiterführender Abnahmeplan
 
 Benötigt werden eine ausdrücklich für die Abnahme freigegebene Testverbindung
 **in der gewünschten Codex-App/Web-Cloud-Sitzung**, Zielalias/Konto,
-unabhängig geprüfter Hostschlüssel, erwartete Maschinen-ID, Checkout-/Logpfad,
-Commit-SHA, Testbefehl und erlaubter Umfang einschließlich temporärer Dateien.
+geklärter Vertrauensmodus und Maschinenidentität, Arbeits-/Logpfad sowie bei
+Code-Tests Checkout, Commit-SHA und Testbefehl. Der erlaubte Umfang muss benötigte
+temporäre Dateien abdecken. Ein ausdrücklich freigegebener TOFU-Erstkontakt mit
+Erstaufnahme folgt dem [Zugangsablauf](../.agents/skills/codex-ssh/references/zugang.md).
 Tunnel-/Host-Zugangsdaten im geschützten Speicher hinterlegen; Gast-Test-Logins
 nach der ausdrücklich gewünschten Betriebsregel in deren Proxmox-Description.
 
@@ -81,10 +86,12 @@ nach der ausdrücklich gewünschten Betriebsregel in deren Proxmox-Description.
    offenen Grenzen festhalten. Erst dann den jeweiligen Live-Nachweis als bestanden
    bezeichnen. Bereinigung nur für selbst angelegte, freigegebene Testartefakte.
 
-Aktueller Live-Status: **offen / unbekannt**. Keine tatsächlichen Zieladressen,
-Tunnel-IDs, Maschinenkennungen oder Schlüssel wurden erfunden oder eingecheckt.
+Der Infrastruktur-Smoke-Test ist bestanden. Die darüber hinausgehenden Negativ-,
+Timeout-, Log- und Wiederaufnahmeszenarien dieses Plans sind noch offen.
+Keine tatsächlichen Zieladressen, Tunnel-IDs, Maschinenkennungen oder Schlüssel
+werden dafür im Repository hinterlegt.
 
-## Ergänzung: Bootstrap-Skript, erster lokaler Stand
+## Historisch: Bootstrap-Skript, erster lokaler Stand
 
 Nach dem ersten Folgeauftrag wurde `scripts/bootstrap-debian.sh` vorbereitet und
 lokal geprüft, zu diesem Zeitpunkt noch nicht auf der Zielmaschine ausgeführt:
@@ -112,7 +119,7 @@ Neustart/Fehlerabbruch und anschließende Tunnel-/Codex-Live-Abnahme. ShellCheck
 und `ssh -G` ersetzen diese Installationsprüfung nicht. Das Skript ist ein
 vorbereiteter erster Stand, keine als VM-getestet ausgewiesene Installation.
 
-## Ergänzung: Debian-/Proxmox-Modus und dauerhafte Test-Logins
+## Historisch: Debian-/Proxmox-Modus und dauerhafte Test-Logins
 
 Der Installer erkennt Plain Debian und Proxmox; die vorherige Proxmox-Sperre
 wurde durch einen eigenen Hostpfad ersetzt. Die separate Admin-Option wird nur
@@ -156,7 +163,35 @@ Der spätere Installationslauf auf dem beauftragten Test-Proxmox ist mit
 `BOOTSTRAP_EXIT=0` und lokalen SSH-Selbstprüfungen belegt; Paketquellenreparatur
 und genaue Grenzen stehen im [Live-Protokoll](live-testproxmox.md).
 
-Offen bleiben die Installation auf Plain Debian, VM-Anlage
+Zum Ende dieses früheren Prüfstands offen: Installation auf Plain Debian, VM-Anlage
 mit gegebenem Storage/Bridge/Template, funktionierender dokumentierter Gast-Login,
 erneutes Auffinden nach Sitzungswechsel und End-to-End-Test aus Codex. Für diese
 Abnahme den Installer-Check von Tunnel-/VM-/Testresultaten getrennt protokollieren.
+
+## Regelprüfung nach der ersten Praxisrunde
+
+Die überarbeiteten Anweisungen sind gegen folgende Fälle zu prüfen. Das ist eine
+manuelle Konsistenzprüfung des Texts, keine automatische Modell-Evaluation:
+
+| Fall | Erwarteter Ablauf |
+| --- | --- |
+| Dokumentierter Bootstrap-Adminzugang vorhanden | Zuordnung und Alias zuerst lesen; vorhandenen Schlüssel/Pin verwenden; kein neues Root-Passwort verlangen |
+| Hostschlüssel fehlt, TOFU für das Ziel schon freigegeben | Erster Identitätsaufruf mit `accept-new`, dauerhaft speichern, danach `yes`; keine neue Freigabefrage |
+| TOFU ohne Soll-Maschinen-ID | Beobachtung lokal als Erstaufnahme festhalten, im freigegebenen Umfang weiterarbeiten; nicht unabhängig verifiziert nennen |
+| TOFU noch nicht freigegeben | Einmal die fehlende zielbezogene Freigabe erfragen; vorher nicht verbinden |
+| Schlüssel oder bekannte Maschinenidentität geändert | Stoppen und unabhängig klären; kein Entfernen oder Neupinnen vorhandener Einträge |
+| Passwort nicht übergeben, SSH Exit 255 | Authentifizierungsfehler melden; Passwortgültigkeit bleibt ungeprüft; dokumentierte Anmeldung prüfen |
+| VM-Auftrag bereits vollständig freigegeben | Identität, Bestand, Konfiguration und zugehörige Tests ohne weitere Routinefreigaben durchführen |
+| Systemdisk importiert, Bootreihenfolge abweichend | Gespeicherte Konfiguration vor Start korrigieren; eigene VM diagnostizieren statt Duplikat anlegen |
+| VLAN-Anschluss oder Tag unklar | Bridge-/Anschlusskonfiguration lesen; bei verbleibender Mehrdeutigkeit fragen, kein Tag aus der Subnetznummer ableiten |
+| HTTP 200, aber falscher Inhalt oder unfertiges Provisioning | Keine vollständige Erfolgsmeldung; Provisioning, Dienst, Login und erwarteten Inhalt separat prüfen |
+
+Veröffentlichte v0.1.0-ZIP/Prüfsumme und Installer bleiben unverändert. Aktuelle
+Anweisungen liegen im Skillordner und im neuen v0.1.1-Download.
+
+Für diesen Dokumentationsstand erneut lokal erfolgreich ausgeführt: alle sechs
+vorhandenen Bootstrap-Unittests (einschließlich effektiver sshd-Konfiguration),
+`bash -n scripts/bootstrap-debian.sh` und `git diff --check`. Lokale Markdown-
+Linkziele, Skill-Frontmatter und der separat erzeugte Import-ZIP-Inhalt wurden
+ebenfalls geprüft. Diese Prüfungen verändern den Test-Proxmox nicht und sind
+kein erneuter Live-Test des überarbeiteten Skills.

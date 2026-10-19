@@ -29,6 +29,11 @@ Ein vorhandener autorisierter Proxmox-API-Zugang ist ebenso nutzbar.
    freigegebenes Template oder Image und Herkunft/Integrität bekannt sein.
    Vorhandene Konfiguration bevorzugen; fehlende Werte konkret abfragen.
    Keine Beispiel-IP, Bridge, Storage-ID oder VMID als reale Vorgabe verwenden.
+   Für statische Netze IP/Präfix, Gateway, DNS und vorgesehene Nutzung der Adresse
+   klären. VLAN-Zugehörigkeit des vorhandenen Anschlusses von einem erforderlichen
+   Gast-/Bridge-Tag unterscheiden: Hostadresse, Bridge-Ports und VLAN-Konfiguration
+   lesen. Kein zusätzliches Tag allein aus der Nummer des Subnetzes ableiten;
+   bei verbleibender Mehrdeutigkeit vor der Netzkonfiguration nachfragen.
 3. Nutze bevorzugt ein vorhandenes geprüftes Debian-Cloud-Init-Template und
    `qm clone`, sonst den vorhandenen dokumentierten `qm create`-/Import-Ablauf.
    Cloud-Init, Testbenutzer, Login-Schlüssel und das verlangte Testpasswort
@@ -41,13 +46,21 @@ Ein vorhandener autorisierter Proxmox-API-Zugang ist ebenso nutzbar.
    Keine vorhandene fremde VM überschreiben oder automatisch löschen.
 5. Schreibe die unten definierte Description einschließlich Login/Testpasswort
    bereits vor dem ersten Start, aktualisiere sie nach IP-/Identitätsprüfung.
+   Nach Diskimport, Cloud-Init/Seed-Anbindung und Description-Änderungen die
+   tatsächlich gespeicherte VM-Konfiguration lesen: richtige Systemdisk,
+   Bootreihenfolge mit Systemdisk zuerst, Seed-Medium, NIC/Bridge und gegebenenfalls
+   VLAN-Tag, Ressourcen und Guest-Agent-Kanal. Secrets aus der Ausgabe ausblenden.
+   Einen Bootfehler der eigenen neuen VM über deren Konsole diagnostizieren
+   und gezielt korrigieren; keine zweite VM auf Verdacht anlegen.
    Der Hersteller-Taskstatus oder `qm status` belegt noch keine SSH-Bereitschaft.
 6. Ermittle die Gastadresse über vorhandene DHCP-/Cloud-Init-/Guest-Agent-Daten.
    Bei einem Klon eigene Maschinen-ID und eigene SSH-Hostschlüssel erzeugen
    lassen und prüfen; keine unveränderte Template-Identität als Gastnachweis nutzen.
-   Pinne den Gast-Hostschlüssel über einen unabhängigen vertrauenswürdigen Kanal,
+   Pinne den Gast-Hostschlüssel bevorzugt über einen unabhängigen vertrauenswürdigen Kanal,
    z. B. bereits eingerichteten QEMU Guest Agent oder lokale Gastkonsole.
    Eine bloß ermittelte IP oder ein Netzwerk-Keyscan genügt dafür nicht.
+   Nur bei ausdrücklicher Freigabe für diesen Gast gilt alternativ der
+   [TOFU-Ablauf](zugang.md); dessen Grenze entsprechend kennzeichnen.
 7. Ergänze einen eigenen SSH-Alias auf dem MCP-Host für die VM, mit deren Konto,
    Hostschlüsselbindung und begrenzten Verbindungszeiten. Der vorhandene
    SSH-MCP-Server kann dieses Gastziel über denselben Tunnel ansprechen.
@@ -55,6 +68,12 @@ Ein vorhandener autorisierter Proxmox-API-Zugang ist ebenso nutzbar.
    Cloud-Code separat übertragen/bereitstellen; SHA und Arbeitsstand vergleichen.
 8. Tests nach [Testablauf](ablauf.md) ausführen. VMID, Gastalias und Testlauf in der
    Description aktuell halten, dort keine ständig wachsenden Logs ablegen.
+   Bei einem Hello-World-Webserver Cloud-Init/Provisioning-Endstatus, aktiven
+   Webdienst, Gastzugang und HTTP 200 mit erwartetem Inhalt prüfen; zusätzlich
+   aus dem vorgesehenen Netz außerhalb des Gasts abrufen, soweit erreichbar.
+   Bei verlangtem Passwort-Login diesen tatsächlich testen oder als ungeprüft
+   melden; ein erfolgreicher Schlüssel-Login beweist ihn nicht. Eine Paket-/
+   Provisioning-SHA ersetzt keine getestete Projekt-Commit-SHA und umgekehrt.
 
 Ein VM-Erstellungsauftrag mit gegebenem Ressourcenrahmen deckt die notwendigen
 Routinebefehle ab. Nur fehlende Konfiguration/Rechte oder Erweiterungen des
@@ -80,11 +99,14 @@ Node / VMID / name: <NODE> / <VMID> / <NAME>
 Created UTC: <UTC>
 Template/image and version: <SOURCE>
 Resources / storage / bridge: <CONFIGURED_VALUES>
-Guest IP / SSH alias: <ADDRESS> / <ALIAS>
+Guest IP / SSH alias: <ADDRESS_AND_PREFIX> / <ALIAS>
+Gateway / DNS / VLAN attachment: <CONFIGURED_VALUES>
 Login user: <GUEST_TEST_USER>
 Login password: <GENERATED_GUEST_TEST_PASSWORD>
 Login verified UTC: <UTC_OR_PENDING>
 Guest identity / SSH fingerprint: <VERIFIED_VALUES_OR_PENDING>
+Trust mode / login methods tested: <PIN_OR_TOFU> / <KEY_PASSWORD_OR_PENDING>
+Provisioning / service / HTTP checks: <STATUS_EXITCODES_AND_EXPECTED_CONTENT>
 Checkout / tested SHA / logs: <PATHS_AND_SHA_OR_PENDING>
 Provisioning state / active run: <STATE_AND_REFERENCE>
 Retention / cleanup scope: <USER_AUTHORIZED_POLICY>

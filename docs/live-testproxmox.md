@@ -1,9 +1,11 @@
-# Live-Einrichtung über AITL, 19.10.2026
+# Live-Einrichtung und erster MCP-/Gast-Test, 19.10.2026
 
 Vom Benutzer ausdrücklich freigegebener Test-Proxmox. Die Befehle wurden über
 die vorhandene AITL-Anbindung zur lokalen Prüfung übertragen; ausgewertet wurde
 die anschließend menschlich geteilte Terminalausgabe. Private Hostnamen,
 Bindungscodes und Zugangsdaten bleiben außerhalb dieses Repositorys.
+Die folgenden Abschnitte bis „Erste Produkt-MCP-/Gast-Abnahme“ beschreiben den
+früheren AITL-Prüfstand; der spätere Nachweis folgt am Ende.
 
 ## Beobachtet und ausgeführt
 
@@ -75,3 +77,59 @@ Ein erfolgreicher AITL-Rückweg oder apt-Update ist weiterhin kein Nachweis für
 SSH-MCP über Secure MCP Tunnel aus Codex. Tunnel-Zuordnung, VM-Anlage,
 Gast-Description mit tatsächlichem Test-Login und Integrationstest bleiben
 getrennte Abnahmeschritte.
+
+## Erste Produkt-MCP-/Gast-Abnahme
+
+In der anschließenden Sitzung waren die SSH-Werkzeuge der ausgewählten
+Codex-Proxmox-Produktverbindung tatsächlich angeboten und aufrufbar. Ein direkter
+Anmeldeversuch mit der privaten Hostadresse wurde nach ausdrücklich freigegebenem
+TOFU mit Exitcode 255 (`Permission denied`) beendet. Das genannte Passwort wurde
+dabei nicht übergeben; dies war kein Nachweis eines falschen Passworts. Auch die
+versuchte MCP-Session öffnete keinen bedienbaren SSH-Passwortprompt.
+
+Nach Recherche im Repository wurde der bereits eingerichtete Alias
+`codex-proxmox-host` mit strikter Hostschlüsselprüfung verwendet. Der begrenzte
+Identitätsaufruf lieferte Exitcode 0, root und das erwartete Arbeitsverzeichnis.
+Die Maschinen-ID stimmte mit dem beim Bootstrap hinterlegten lokalen Manifest
+überein. Der Admin-Alias nutzte also die vorhandene Schlüssel-/Hostbindung;
+er benötigte den TOFU-Schritt der direkten Verbindung nicht.
+
+Der Bestand enthielt noch keine VMs. Im beauftragten Ressourcenrahmen wurde
+eine Debian-13-Test-VM mit einer CPU, 1024 MiB RAM und 8 GiB Systemdisk angelegt.
+Verwendet wurde das offizielle `debian-13-generic-amd64.qcow2` aus
+`https://cloud.debian.org/images/cloud/trixie/latest/`, geprüft gegen die per
+HTTPS gelieferte SHA512SUMS-Datei. Die tatsächlich verwendete Prüfsumme ist in
+der lokalen VM-Akte hinterlegt. Das ist ein Prüfsummennachweis, kein zusätzlich
+durchgeführter Signaturnachweis. Die vorhandene Bridge transportierte bereits
+das beauftragte Gastnetz; ein zusätzliches Gast-VLAN-Tag wurde nicht gesetzt.
+Private Adressen, Maschinenkennungen, Schlüssel und Gastpasswort stehen nicht
+in diesem öffentlichen Protokoll.
+
+Der erste Start zeigte Netzwerkboot und „No bootable device“. Die gespeicherte
+Bootreihenfolge enthielt die Systemdisk nicht. Nach Stoppen ausschließlich der
+eigenen neuen VM, explizitem Setzen von `order=scsi0` und erneutem Start bootete
+Debian. Die Ursache für die zuvor abweichende Reihenfolge wurde nicht abschließend
+geklärt; künftig nach den Konfigurationsänderungen den gespeicherten Stand lesen.
+
+Belegte Endergebnisse dieser Sitzung:
+
+- Provisioning-Skript endete mit gespeicherten Status 0; der Bootfehler wurde
+  anschließend korrigiert. `cloud-init status --wait` meldete `status: done`.
+- Der Gast meldete Debian 13.7; nginx und QEMU Guest Agent waren `active`.
+- Öffentlicher Gast-Hostschlüssel und Maschinen-ID wurden über den QEMU Guest
+  Agent erfasst und für einen eigenen Gastalias verwendet. Der Gast-Identitäts-
+  aufruf über MCP endete mit Exitcode 0 und stimmte mit diesen Werten überein.
+- Schlüssel-Login über den Gastalias und separater Passwort-Login über den
+  vorhandenen OpenSSH-Client wurden geprüft; der Passworttest lieferte Exitcode 0.
+  Das Passwort wurde lokal erzeugt und aus der geschützten Akte verwendet.
+- HTTP-Abruf der Gastadresse auf Port 80 lieferte im Gast HTTP 200 und den
+  erwarteten Hello-World-Inhalt; derselbe Inhalt war auch vom Proxmox-Host abrufbar.
+- Tatsächlicher Gastbenutzer, Testpasswort, Image-Prüfsumme, geprüfte Identität
+  und Ergebnisstatus wurden in der Proxmox-Description der zugeordneten VM
+  hinterlegt. Der Benutzer bestätigte den ersten kleinen Test als erfolgreich.
+
+Damit ist erstmals der konkrete Weg Produkt-MCP → Proxmox → Gast → HTTP belegt.
+Es war ein Infrastruktur-/Webserver-Smoke-Test ohne Projekt-Checkout oder
+Projekt-Commit-SHA. Ein anderer Codex-Cloud-Task, Wiederaufnahme nach Sitzungs-
+oder Serverwechsel, negative Hostschlüsseltests, Projekt-Integrationstests und
+vollständiger Plain-Debian-Bootstrap sind damit nicht geprüft.
