@@ -56,11 +56,13 @@ configuration. Project packages and tests belong in guests on Proxmox.
 | Path on the local host | Purpose |
 | --- | --- |
 | `/opt/codex-ssh/` | Pinned tunnel client and installation record |
+| `/etc/codex-ssh-tunnel.json` | Root-owned 0640 service profile; only a protected runtime-key file reference |
+| `/etc/systemd/system/codex-ssh-tunnel.service` | Boot-enabled foreground tunnel service |
 | `/etc/codex-ssh/` | Loopback SSH configuration, host key, local identity |
 | `/var/lib/codex-test/mcp/` | Isolated SSH-MCP Python environment |
 | `/var/lib/codex-test/.ssh/` | Client aliases, login keys and known_hosts |
-| `/var/lib/codex-test/.config/codex-ssh/guided/` | Guided setup state, profiles, protected runtime-key file and diagnostic log |
-| `/opt/codex-ssh/configure-tunnel.py` | Reconfigure/check the guided runtime |
+| `/var/lib/codex-test/.config/codex-ssh/guided/` | Guided setup state and protected runtime-key file; historical native profiles remain intact |
+| `/opt/codex-ssh/configure-tunnel.py` | Configure/check the systemd runtime |
 
 The wizard reads the runtime key using a hidden terminal prompt, writes it with
 mode 0600, and passes only a `file:` reference to tunnel-client. It does not ask
@@ -73,35 +75,82 @@ private SSH keys and tunnel credentials do not belong in VM descriptions.
 
 ## Runtime lifecycle
 
-The wizard uses the existing tunnel client's `runtimes connect` supervision and
-then runs `doctor` and `runtimes status`. It does not build another supervisor,
-SSH server implementation or tunnel transport. Running/healthy/ready is local
-readiness, not proof of successful product tool discovery or control-plane polling.
-Complete the [product connection check](onboarding.md#3-connect-and-test).
+Version 0.3.0 follows the pinned upstream client's [systemd deployment pattern](https://github.com/openai/tunnel-client/blob/v0.0.16/docs/deployment/systemd-vm.md):
+**systemd directly supervises foreground `tunnel-client run`**, with the existing
+stdio SSH-MCP child. It does not run `runtimes connect` inside another supervisor.
 
-The native managed runtime can survive the terminal closing; this installer does
-not install a tunnel startup service for reboot. After host restart, rerun
-`python3 /opt/codex-ssh/configure-tunnel.py` as root to reconnect the recorded
-runtime. For deployment-specific autostart follow the upstream
-[systemd deployment guide](https://github.com/openai/tunnel-client/blob/v0.0.16/docs/deployment/systemd-vm.md).
+The unit runs as `codex-test`, with explicit HOME, PATH and working directory,
+after `network-online.target` and the required private loopback SSH service.
+`enable` adds boot activation; `Restart=always` separately handles process exits
+while the machine is running. Recovery waits 5 seconds and is limited to five
+starts per five minutes. The unit gives shutdown 20 seconds and kills its whole
+process group. No login, terminal, interactive credential prompt or shell session
+is needed at service start.
 
-## Checks and recovery
+`Type=simple` means systemd's active state is **not** application readiness.
+The setup checks the local `/healthz` and `/readyz` separately for up to 30 seconds
+(with bounded HTTP probes); its commands also have timeouts. The 45-second
+`TimeoutStartSec` bounds systemd activation, not successful OpenAI connectivity.
+Local health/readiness is not proof of control-plane polling or product tool
+discovery. Complete the [product connection check](onboarding.md#3-connect-and-test).
 
 ```bash
-bash scripts/bootstrap-debian.sh --check
+systemctl is-enabled codex-ssh-tunnel.service
+systemctl status codex-ssh-tunnel.service --no-pager --lines=25
 python3 /opt/codex-ssh/configure-tunnel.py --status
+journalctl -u codex-ssh-tunnel.service --no-pager -n 80
+# Explicit operator restart, not needed on every installer run:
+systemctl restart codex-ssh-tunnel.service
+# Stop now and disable future boot activation; preserves all keys and profiles:
+systemctl disable --now codex-ssh-tunnel.service
+# Resume after fixing key permissions, network or a rate-limited failure:
+systemctl reset-failed codex-ssh-tunnel.service
+systemctl enable --now codex-ssh-tunnel.service
 ```
 
-An existing completed bootstrap is checked, not reinstalled. Partial installations
-stop for inspection; no automatic deletion or rollback. An existing generated
-key file or unrelated runtime alias is not overwritten. Interrupted configuration
-keeps its local state; inspect it before retrying. Local SSH or a running tunnel
-alone is not a successful guest test.
+The service profile is `/etc/codex-ssh-tunnel.json`, owned by root, group
+`codex-test`, mode 0640. It references the existing mode-0600 runtime key with
+`file:`; the unit, process arguments and repository never contain the key value.
+The health URL lives only under `/run/codex-ssh-tunnel/` (0700), recreated by
+systemd on start. Arbitrary native command output is not saved by the wizard;
+its local log records only exit status. Inspect upstream journal diagnostics
+locally; do not paste credentials or full private logs into issues.
 
-If enterprise apt sources return 401, fix the appropriate sources deliberately.
-The installer does not silently switch Proxmox subscriptions. An already approved
-source file can be selected for a single run with `CODEX_SSH_APT_SOURCES` set to
-its absolute path; signature verification stays enabled.
+## Existing installations and interrupted setup
 
-For initial root access use the local console or an already authorized terminal
-connection. This project does not grant itself access to an unassigned machine.
+Run the new versioned installer normally to upgrade the setup helpers; the
+completed bootstrap checks its recorded installation and retains SSH keys, host
+identity, account and pinned upstreams. With `--local-only` it updates helpers
+without prompting for credentials, enabling a new tunnel service or disabling an
+existing service. Run `python3 /opt/codex-ssh/configure-tunnel.py` later as root.
+Running that command on an existing service re-enables boot activation but does
+not restart a running process. `--status` never changes activation state.
+
+- Guided state and its original runtime key are reused without prompts or rotation.
+- Original manual setup files `~codex-test/.config/codex-ssh/tunnel-id` and
+  `runtime-api-key` are also adopted without copying the key.
+- Matching native aliases `codex-ssh-guided` / `codex-test-proxmox` are migrated
+  only with the same tunnel, key-file reference and expected stdio MCP command.
+  The native runtime must report stopped before systemd starts. Native records,
+  profile files and keys remain for inspection; do not reconnect that native
+  alias while the systemd unit is in use.
+- Generated JSON profiles (despite their `.yaml` extension) retain custom
+  control-plane URL/path and transport settings. Custom YAML, inline keys,
+  different targets, unknown aliases for the same tunnel, competing processes,
+  existing custom unit definitions or drop-ins stop for local review. They are
+  not overwritten, killed or adopted silently. Resolve competing supervisors
+  before retrying; never add a second boot mechanism.
+- Empty ID skips the tunnel. Empty key, EOF or Ctrl+C stops before saving a new
+  credential pair. Input uses the controlling terminal even with `curl | bash`;
+  no echo fallback is allowed. If interrupted after the key was saved but before
+  state was saved, enter the same tunnel ID on retry; that key is retained.
+- A failure after migration/start keeps the saved state. Inspect unit and native
+  status before retrying; setup does not blindly launch another process. Concurrent
+  wizard invocations are rejected by a local lock.
+
+Check local SSH independently with `bash scripts/bootstrap-debian.sh --check`.
+No automatic uninstall, credential deletion or rollback is performed. A running
+tunnel alone is not a successful guest test. A **real reboot of an authorized
+Debian/Proxmox host**, followed by local status and a product MCP call without an
+interactive login, remains the live acceptance step; container restart checks do
+not substitute for that evidence. See [versioned validation](validation.md).

@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.3.0 — 2026-10-19 (review prerelease)
+
+- Enable persistent unattended tunnel startup using the pinned upstream foreground
+  client under systemd, with explicit service account/home, bounded recovery and
+  separate local readiness checks.
+- Migrate matching native guided/manual runtimes without rotating credentials or
+  SSH identities; preserve and reject conflicting services, profiles and processes.
+- Fix controlling-terminal input when the installer is piped through stdin; test
+  hidden input, cancellation, interrupted setup and noninteractive resumption.
+- Document status, restart, disable and recovery; rebuild versioned bundles and
+  checksums while retaining every historical download.
+- Delivered on an issue branch and review PR, without deployment to the existing
+  Proxmox host. Real reboot/product acceptance remains separate.
+
 ## v0.2.0 — 2026-10-19
 
 - Translate current documentation and skill instructions to English.

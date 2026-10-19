@@ -8,7 +8,7 @@
 | Local MCP initialization and tool calls | `MCP_LOCAL_OK`, exit 0 | Initially local, before product discovery |
 | Product MCP host and guest calls | Passed | This selected connection, not every Codex surface |
 | Debian 13 VM, key/password login and Hello World HTTP | Passed | One infrastructure smoke test, no project commit |
-| Revised guided installer | See local checks below | No new live host bootstrap claimed |
+| v0.3 systemd runtime | Debian 12/13 disposable-container lifecycle and fixture MCP calls passed | No existing-host deployment, real reboot or new product connection claimed |
 | Negative host keys, timeout recovery, session/reboot recovery | Still open | Never infer these from basic HTTP success |
 
 The [live record](live-testproxmox.md) includes the original apt failure, approved
@@ -30,8 +30,7 @@ Bootstrap tests cover Debian/Proxmox detection, incomplete-platform rejection,
 CLI validation and the generated effective sshd configuration, when OpenSSH is
 available. They start no services and run no apt operations. Guided-setup tests
 cover secret-file permissions and overwrite refusal, tunnel-ID validation,
-existing-runtime conflicts, strict readiness fields, native client command
-construction, interrupted/resumed setup and subprocess error handling. Corrupt
+existing-runtime conflicts, strict readiness fields, native migration, interrupted/resumed setup and subprocess error handling. Corrupt
 artifact tests ensure a changed upstream archive is rejected.
 
 For release 0.2.0, all 18 local tests passed, along with Bash syntax, ShellCheck,
@@ -46,6 +45,47 @@ Private configuration tests use fake subprocess responses; that does not prove
 account permissions, network availability or live tunnel polling. Documentation
 links, skill frontmatter, archive contents and release checksums are checked
 locally. The weekly workflow also fetches the fixed upstream artifacts.
+
+## v0.3.0 persistent-startup checks — 2026-10-19
+
+- 29 repository regression tests passed, including real controlling-PTY input with
+  the script supplied through stdin, hidden-key/no-echo assertions, cancellation,
+  empty inputs, partial-key resumption, manual/guided credential reuse, strict
+  readiness, native-stop confirmation, foreign unit/drop-in/profile rejection,
+  protected file references and deterministic release packaging.
+- Bash syntax, dependency-lock consistency and release/source byte checks passed.
+- Fresh **Debian 12 and Debian 13 systemd containers** ran the real bootstrap in
+  local-only mode with pinned upstream downloads, a new account, loopback SSH
+  keys and host pin. This did not install or deploy to an existing user host.
+- In each container, `tests/exercise-service.py --disposable-container` attached a
+  sentinel-key runtime to an in-process loopback control-plane fixture, migrated
+  its real native supervisor into systemd, verified the old process stopped and
+  asserted repeat setup preserves the service PID, key bytes and host identity.
+- The fixture delivered MCP initialize/initialized/tools-list/ssh-exec commands
+  through the real v0.0.16 tunnel client and installed slepp stdio server. An SSH
+  command against the pinned local alias returned the expected marker and account.
+- SIGKILL of the main process recovered through systemd. Disable/stop and subsequent
+  enable/start recovered without an interactive login or inherited shell secrets.
+  The sentinel was absent from unit, profile, process arguments and journal.
+- Proxmox detection and effective host-admin SSH restrictions remain covered by
+  fixtures for Debian 12/13; **no actual Proxmox kernel/VM-management lifecycle was
+  exercised for this revision**. Containers use their host kernel and are not VMs.
+
+The lifecycle exercise is deliberately guarded for fresh disposable Docker
+containers with root and systemd. After running the new `setup.sh --local-only`
+there, copy `tests/exercise-service.py` into that container and run it as above.
+It writes fixture configuration and tests process lifecycle; never use it on an
+existing installation. The HTTP fixture is a test double, not an OpenAI service
+or a supported alternative transport. It does not prove account permissions or
+product availability. No new fixture server is installed by the release bundle.
+
+**Open live acceptance:** on an authorized fresh Debian/Proxmox test host, run the
+versioned installer, verify `is-enabled` and local readiness, perform a real host
+reboot, and check readiness and a product MCP `ssh_exec` call without first logging
+in to launch the runtime. Record host/version, elapsed boot/recovery, result and
+limitations without credentials. The existing Proxmox was not touched for #3.
+This is why v0.3.0 is published as a review prerelease on its issue branch; manual
+review/merge and live deployment are separate steps.
 
 ## Earlier upstream checks
 
@@ -90,4 +130,4 @@ never damage an existing pin just to test a negative case. Record dates, version
 run IDs, exit codes and limits without publishing private identifiers or secrets.
 
 Published older downloads retain their original bytes, language and checksums.
-The current English skill is in the source directory and the 0.2.0 download.
+The current English skill is in the source directory and the current versioned download.

@@ -18,7 +18,7 @@ jobs:
           for script in scripts/*.sh; do bash -n "$script"; done
           python3 -m unittest discover -s tests -v
           python3 scripts/check-upstreams.py --offline
-          python3 scripts/package-release.py --version 0.2.0 --check
+          python3 scripts/package-release.py --version 0.3.0 --check
           git diff --check
       - name: Check pinned upstream bytes
         run: python3 scripts/check-upstreams.py

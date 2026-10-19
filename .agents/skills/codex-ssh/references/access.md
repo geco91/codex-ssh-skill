@@ -70,3 +70,9 @@ For a new guest, prefer obtaining its public host key and machine ID through a
 verified host's QEMU Guest Agent or guest console. A network keyscan alone is not
 independent verification. Authorization for host TOFU does not automatically
 apply to every new guest.
+
+For the v0.3 guided installation, `codex-ssh-tunnel.service` owns the foreground
+runtime and boot activation. Inspect it with the installed configure helper's
+`--status` or bounded `systemctl`/`journalctl` queries. Do not run `runtimes connect`
+for the same tunnel in parallel. Local service readiness does not prove that the
+selected product connection can discover or call the MCP tools.
