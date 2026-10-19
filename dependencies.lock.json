@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "ssh_mcp": {
+    "project": "https://github.com/slepp/ssh-mcp",
+    "version": "0.2.0",
+    "commit": "37381ddc68a941b62ed8557dcbb5644dc3b6c5fd",
+    "url": "https://codeload.github.com/slepp/ssh-mcp/tar.gz/37381ddc68a941b62ed8557dcbb5644dc3b6c5fd",
+    "sha256": "a4792f1271dc332c283054e92e8819ee15225c10bf20a5347f07acdad68b92a3"
+  },
+  "tunnel_client": {
+    "project": "https://github.com/openai/tunnel-client",
+    "version": "0.0.16",
+    "artifacts": {
+      "amd64": {
+        "url": "https://github.com/openai/tunnel-client/releases/download/v0.0.16/tunnel-client-v0.0.16-linux-amd64.zip",
+        "sha256": "d60cdba019bce451bcc3a15478cc5b9cb11270b049f5b56ea39a80b517f8b117"
+      },
+      "arm64": {
+        "url": "https://github.com/openai/tunnel-client/releases/download/v0.0.16/tunnel-client-v0.0.16-linux-arm64.zip",
+        "sha256": "963d0384aaa7c798778479c45673f9051a4039dd891aef8f8978d2a1a628b74f"
+      }
+    }
+  }
+}

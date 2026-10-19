@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="510" viewBox="0 0 1120 510" role="img" aria-labelledby="title desc">
+<title id="title">Codex SSH architecture</title>
+<desc id="desc">Codex uses OpenAI Secure MCP Tunnel. A client inside your local network polls outbound over HTTPS and forwards requests to SSH-MCP over stdio. OpenSSH reaches a Debian server or optional Proxmox host and its test guests.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#0b8d91"/></marker></defs>
+<rect width="1120" height="510" rx="24" fill="#f4f9fa"/>
+<g font-family="Arial, sans-serif" fill="#10283e">
+<text x="40" y="46" font-size="22" font-weight="700">From Codex to your local servers</text>
+<rect x="410" y="80" width="675" height="390" rx="22" fill="#e5f4f3" stroke="#a5d8d6"/>
+<text x="435" y="111" font-size="16" font-weight="700">YOUR LOCAL NETWORK</text>
+<g fill="#fff" stroke="#b5cbd2" stroke-width="1.5">
+<rect x="35" y="178" width="150" height="110" rx="14"/>
+<rect x="220" y="178" width="150" height="110" rx="14"/>
+<rect x="445" y="178" width="160" height="110" rx="14"/>
+<rect x="655" y="178" width="155" height="110" rx="14"/>
+<rect x="865" y="145" width="185" height="77" rx="14"/>
+<rect x="865" y="265" width="185" height="77" rx="14"/>
+<rect x="865" y="385" width="185" height="57" rx="14"/>
+</g>
+<g text-anchor="middle" font-size="18" font-weight="700">
+<text x="110" y="222">Codex</text><text x="295" y="213">Secure MCP</text><text x="295" y="239">Tunnel</text>
+<text x="525" y="222">tunnel-client</text><text x="732" y="222">SSH-MCP</text>
+<text x="957" y="177">Debian server</text><text x="957" y="296">Proxmox host</text><text x="957" y="419">Test guests</text>
+</g>
+<g text-anchor="middle" font-size="13" fill="#456274">
+<text x="110" y="251">+ Codex SSH skill</text><text x="295" y="267">OpenAI-managed</text>
+<text x="525" y="251">outbound polling</text><text x="732" y="251">OpenSSH tools</text>
+<text x="957" y="201">assigned account</text><text x="957" y="323">optional host admin</text>
+<text x="405" y="150">HTTPS</text><text x="628" y="203">stdio</text><text x="838" y="168">SSH</text>
+<text x="1005" y="368">VM management</text>
+</g>
+<g stroke="#0b8d91" stroke-width="2.5" fill="none" marker-end="url(#arrow)">
+<path d="M185 233H220"/><path d="M445 233H370"/><path d="M605 233H655"/>
+<path d="M810 210H835V184H865"/><path d="M810 252H835V303H865"/>
+<path d="M957 342V385"/><path d="M732 288V413H865"/>
+</g>
+<text x="760" y="397" font-size="13" fill="#456274">SSH to guest</text>
+<text x="40" y="455" font-size="13" fill="#456274">No inbound public MCP listener.</text>
+</g></svg>
