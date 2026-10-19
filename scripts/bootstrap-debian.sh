@@ -47,6 +47,7 @@ ssh_port=22222
 
 check_local() {
   [[ -f "$base/installed" ]] || die 'Installation incomplete or missing; inspect reserved paths before retrying.'
+  printf '%s  %s\n' a4792f1271dc332c283054e92e8819ee15225c10bf20a5347f07acdad68b92a3 "$account_home/mcp-source.tar.gz" | sha256sum -c - || die 'Installed SSH-MCP source archive differs from the pinned artifact; inspect before proceeding.'
   systemctl is-active --quiet codex-ssh-loopback.service || die 'Loopback SSH service is not active.'
   # Expansion is intentionally performed by the remote shell, not this shell.
   # shellcheck disable=SC2016
@@ -166,7 +167,7 @@ curl --proto '=https' --tlsv1.2 -fSL --connect-timeout 15 --max-time 300 \
 printf '%s  %s\n' "$client_sha" "$stage/client.zip" | sha256sum -c -
 curl --proto '=https' --tlsv1.2 -fSL --connect-timeout 15 --max-time 120 \
   'https://codeload.github.com/slepp/ssh-mcp/tar.gz/37381ddc68a941b62ed8557dcbb5644dc3b6c5fd' -o "$stage/mcp.tar.gz"
-printf '%s  %s\n' a4792f1271dc332c283054e92e8819ee15225c10bf20a5347f07acdad68b92a3 "$stage/mcp.tar.gz" | sha256sum -c -
+printf '%s  %s\n' a4792f1271dc332c283054e92e8819ee15225c10bf20a5347f07acdad68b92a3 "$stage/mcp.tar.gz" | sha256sum -c - || die 'SSH-MCP checksum mismatch: upstream bytes changed; no automatic update or installation.'
 
 install -d -m 755 "$base"
 python3 - "$stage/client.zip" "$base" <<'PY'

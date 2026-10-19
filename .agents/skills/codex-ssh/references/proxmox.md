@@ -1,95 +1,79 @@
-# Debian oder Proxmox: Auftrag am richtigen Ort ausführen
+# Run the task on the right host or guest
 
-## Modus und Rechte
+## Platform and permissions
 
-Nach der Identitätsprüfung lokal konfigurierte Rolle mit beobachteter Umgebung
-abgleichen. `/etc/pve` plus vorhandenes `pveversion` und `qm` kennzeichnet den
-Proxmox-Ablauf. Nur ein Teil davon oder eine widersprüchliche Konfiguration:
-Zustand klären, nicht auf normalen Debian-Installationsmodus zurückfallen.
+After the identity check compare the assigned role with the observed platform.
+`/etc/pve`, `pveversion` and `qm` together identify Proxmox. Partial or conflicting
+signals require clarification, not a fallback to plain Debian installation.
 
-- Plain Debian: direkt im freigegebenen Checkout auf dieser Maschine testen.
-- Proxmox: MCP/Tunnel und erforderliche Verwaltungswerkzeuge auf dem Host;
-  Projektabhängigkeiten und Tests in ausdrücklich zugeordneten Test-VMs.
+- Plain Debian: test directly in the authorized checkout on that machine.
+- Proxmox: host management and MCP/tunnel components belong on the host; project
+  dependencies and tests belong in explicitly assigned guest VMs.
 
-Nutze vorhandene `qm`-/Proxmox-API-Funktionen. Ermittle tatsächliche Optionen
-mit installierter Hilfe, statt Flags oder API-Endpunkte zu erfinden. Der
-Bootstrap kann mit `--install --proxmox-admin` den privaten SSH-Alias
-`codex-proxmox-host` als Host-Root einrichten. Das ist voller Hostzugriff,
-keine technische Beschränkung auf einzelne VMIDs. Ohne diese Option verwendet
-das Konto nur seine bestehenden Rechte; fehlende Verwaltungsrechte konkret melden.
-Ein vorhandener autorisierter Proxmox-API-Zugang ist ebenso nutzbar.
+Use existing `qm`/Proxmox API operations. Inspect installed help instead of
+inventing flags or endpoints. The bootstrap's explicit `--proxmox-admin` option
+creates `codex-proxmox-host` with full host-root access, not a technical limit to
+specific VM IDs. Otherwise use the account's existing rights or an already
+authorized Proxmox API connection. Report missing rights precisely.
 
-## VM anlegen und wiederfinden
+## Provision and recover a VM
 
-1. Lies zuerst `qm list` und die Beschreibungen der für den Auftrag relevanten
-   VMs. Suche nach Aufgabe/Laufkennung und Projekt, nicht nur nach einem Namen.
-   Lies vorhandene Gast-Logins aus deren Description. Nutze eine zugehörige
-   vorhandene VM weiter, soweit deren Zustand zum Auftrag passt.
-2. Vor einer Neuanlage müssen Umfang/Ressourcenrahmen, Zielnode, Storage, Bridge,
-   freigegebenes Template oder Image und Herkunft/Integrität bekannt sein.
-   Vorhandene Konfiguration bevorzugen; fehlende Werte konkret abfragen.
-   Keine Beispiel-IP, Bridge, Storage-ID oder VMID als reale Vorgabe verwenden.
-   Für statische Netze IP/Präfix, Gateway, DNS und vorgesehene Nutzung der Adresse
-   klären. VLAN-Zugehörigkeit des vorhandenen Anschlusses von einem erforderlichen
-   Gast-/Bridge-Tag unterscheiden: Hostadresse, Bridge-Ports und VLAN-Konfiguration
-   lesen. Kein zusätzliches Tag allein aus der Nummer des Subnetzes ableiten;
-   bei verbleibender Mehrdeutigkeit vor der Netzkonfiguration nachfragen.
-3. Nutze bevorzugt ein vorhandenes geprüftes Debian-Cloud-Init-Template und
-   `qm clone`, sonst den vorhandenen dokumentierten `qm create`-/Import-Ablauf.
-   Cloud-Init, Testbenutzer, Login-Schlüssel und das verlangte Testpasswort
-   gehören in den Gast. Konfiguration, Authentifizierungsregeln und verfügbaren
-   Speicher prüfen; kein Dist-Upgrade oder Projektpakete auf dem Proxmox-Host.
-4. Freie VMID unmittelbar vor Erstellen erneut prüfen; VMID/Projekt/Laufkennung
-   und den jeweils erreichten Schritt sofort in der Description festhalten.
-   Erst nach bestätigtem Erstellen die nächsten Schritte ausführen. Nach Timeout
-   Bestand und Taskstatus prüfen, bevor create/clone erneut gesendet wird.
-   Keine vorhandene fremde VM überschreiben oder automatisch löschen.
-5. Schreibe die unten definierte Description einschließlich Login/Testpasswort
-   bereits vor dem ersten Start, aktualisiere sie nach IP-/Identitätsprüfung.
-   Nach Diskimport, Cloud-Init/Seed-Anbindung und Description-Änderungen die
-   tatsächlich gespeicherte VM-Konfiguration lesen: richtige Systemdisk,
-   Bootreihenfolge mit Systemdisk zuerst, Seed-Medium, NIC/Bridge und gegebenenfalls
-   VLAN-Tag, Ressourcen und Guest-Agent-Kanal. Secrets aus der Ausgabe ausblenden.
-   Einen Bootfehler der eigenen neuen VM über deren Konsole diagnostizieren
-   und gezielt korrigieren; keine zweite VM auf Verdacht anlegen.
-   Der Hersteller-Taskstatus oder `qm status` belegt noch keine SSH-Bereitschaft.
-6. Ermittle die Gastadresse über vorhandene DHCP-/Cloud-Init-/Guest-Agent-Daten.
-   Bei einem Klon eigene Maschinen-ID und eigene SSH-Hostschlüssel erzeugen
-   lassen und prüfen; keine unveränderte Template-Identität als Gastnachweis nutzen.
-   Pinne den Gast-Hostschlüssel bevorzugt über einen unabhängigen vertrauenswürdigen Kanal,
-   z. B. bereits eingerichteten QEMU Guest Agent oder lokale Gastkonsole.
-   Eine bloß ermittelte IP oder ein Netzwerk-Keyscan genügt dafür nicht.
-   Nur bei ausdrücklicher Freigabe für diesen Gast gilt alternativ der
-   [TOFU-Ablauf](zugang.md); dessen Grenze entsprechend kennzeichnen.
-7. Ergänze einen eigenen SSH-Alias auf dem MCP-Host für die VM, mit deren Konto,
-   Hostschlüsselbindung und begrenzten Verbindungszeiten. Der vorhandene
-   SSH-MCP-Server kann dieses Gastziel über denselben Tunnel ansprechen.
-   Wechsel explizit auf diesen Alias und prüfe Maschinen-ID, Benutzer und Pfad.
-   Cloud-Code separat übertragen/bereitstellen; SHA und Arbeitsstand vergleichen.
-8. Tests nach [Testablauf](ablauf.md) ausführen. VMID, Gastalias und Testlauf in der
-   Description aktuell halten, dort keine ständig wachsenden Logs ablegen.
-   Bei einem Hello-World-Webserver Cloud-Init/Provisioning-Endstatus, aktiven
-   Webdienst, Gastzugang und HTTP 200 mit erwartetem Inhalt prüfen; zusätzlich
-   aus dem vorgesehenen Netz außerhalb des Gasts abrufen, soweit erreichbar.
-   Bei verlangtem Passwort-Login diesen tatsächlich testen oder als ungeprüft
-   melden; ein erfolgreicher Schlüssel-Login beweist ihn nicht. Eine Paket-/
-   Provisioning-SHA ersetzt keine getestete Projekt-Commit-SHA und umgekehrt.
+1. Read `qm list` and descriptions of relevant VMs first. Match purpose/project
+   and run identity, not just a name. Read existing guest logins from Description.
+   Reuse a suitable assigned VM rather than creating a duplicate.
+2. Before creating a VM establish scope, resources, node, storage, bridge and
+   approved image/template provenance and integrity. Prefer existing configured
+   resources; ask only for genuinely missing choices. Never turn example IPs,
+   bridge names, storage IDs or VM IDs into real defaults.
+   For static networking establish IP/prefix, gateway, DNS and assigned use of
+   that address. Distinguish an uplink already connected to a VLAN from a required
+   guest/bridge tag: inspect bridge ports, host addressing and VLAN configuration.
+   Do not infer a tag from a subnet number. Ask if the attachment remains ambiguous.
+3. Prefer an existing verified Debian Cloud-Init template and `qm clone`; otherwise
+   use the documented `qm create`/import path. Configure Cloud-Init, the guest user,
+   SSH login key and requested test password inside the guest. Check available
+   storage and authentication rules. No host dist-upgrade or project packages.
+4. Recheck the free VM ID immediately before creation. Save VM ID, project/run
+   identity and current step in Description as soon as creation is confirmed.
+   After timeout inspect inventory and task status before retrying create/clone.
+   Never overwrite or automatically delete an unrelated VM.
+5. Save the Description, including guest credentials, before first boot. After
+   disk import, seed/Cloud-Init attachment and Description updates read back the
+   actual saved configuration: correct system disk, system disk first in boot
+   order, seed medium, NIC/bridge/tag, resources and guest-agent channel. Redact
+   credentials from output. Diagnose boot problems using the new VM's console
+   and repair that VM rather than creating another. `qm status` or a successful
+   Proxmox task does not establish guest SSH readiness.
+6. Obtain guest addressing from configured static IP, DHCP, Cloud-Init or Guest
+   Agent data. Clones need their own machine ID and SSH host keys. Prefer pinning
+   the public guest host key through the verified host's QEMU Guest Agent or
+   guest console. A network keyscan or an address alone is not independent proof.
+   Explicit authorization for this guest can instead use the [TOFU path](access.md),
+   with its limits reported honestly.
+7. Create a dedicated guest alias on the MCP host with its account, pinned host
+   key and bounded connection time. Reuse the same MCP server/tunnel for this
+   guest. Switch explicitly and compare machine ID, user and directory. Transfer
+   project code separately if needed and verify SHA/worktree before code tests.
+8. Follow the [test workflow](workflow.md). Keep Description current with guest
+   alias and run status, not growing logs. For a Hello World server verify finished
+   provisioning/Cloud-Init, active service, guest login and HTTP 200 with expected
+   content. Fetch from outside the guest on the intended network when reachable.
+   Actually test a requested password login or mark it unverified; key-login
+   success does not prove password login. Image integrity and tested code SHA
+   are distinct evidence.
 
-Ein VM-Erstellungsauftrag mit gegebenem Ressourcenrahmen deckt die notwendigen
-Routinebefehle ab. Nur fehlende Konfiguration/Rechte oder Erweiterungen des
-Auftrags klären, nicht jeden bereits gedeckten Befehl erneut bestätigen lassen.
+A scoped VM provisioning task authorizes the necessary routine checks and changes.
+Ask for missing configuration, rights or scope extensions, not for every command.
 
-## Dauerhafte Description: explizit gewünschte Test-Logins
+## Description as the resumption record
 
-Die Proxmox-Description (im Summary sichtbar) ist die Wiederanlaufakte für
-Benutzer und spätere Agentensitzungen. Speichere dort für **selbst angelegte,
-zugeordnete Test-VMs** deren tatsächlichen Login-Benutzer und das tatsächliche
-Testpasswort im Klartext. Erzeuge pro VM einen Test-Login; keine Platzhalter als
-fertige Einrichtung ausweisen. Installiere/konfiguriere Gast-SSH so, dass der
-dokumentierte Login tatsächlich funktioniert, und prüfe ihn. Ein Schlüssel
-kann für die automatisierten MCP-Aufrufe zusätzlich verwendet werden.
+For **assigned test VMs you create**, the explicitly requested operating rule is
+to store the real guest login user and generated test password in the Proxmox
+Description. It is visible to users with VM-description access and is not a
+secret vault. Never put host-root or tunnel credentials there. Configure guest
+SSH to support the documented login and verify it. Automation may also use a key.
 
-Für das öffentliche Repository nur dieses Schema, Werte erst lokal erzeugen:
+Only this placeholder schema belongs in the public repository:
 
 ```text
 Codex test VM — schema 1
@@ -97,7 +81,7 @@ Purpose/project: <PROJECT>
 Task/run: <TASK_OR_RUN_ID>
 Node / VMID / name: <NODE> / <VMID> / <NAME>
 Created UTC: <UTC>
-Template/image and version: <SOURCE>
+Template/image and version: <SOURCE_AND_CHECKSUM>
 Resources / storage / bridge: <CONFIGURED_VALUES>
 Guest IP / SSH alias: <ADDRESS_AND_PREFIX> / <ALIAS>
 Gateway / DNS / VLAN attachment: <CONFIGURED_VALUES>
@@ -107,25 +91,21 @@ Login verified UTC: <UTC_OR_PENDING>
 Guest identity / SSH fingerprint: <VERIFIED_VALUES_OR_PENDING>
 Trust mode / login methods tested: <PIN_OR_TOFU> / <KEY_PASSWORD_OR_PENDING>
 Provisioning / service / HTTP checks: <STATUS_EXITCODES_AND_EXPECTED_CONTENT>
-Checkout / tested SHA / logs: <PATHS_AND_SHA_OR_PENDING>
+Checkout / tested SHA / logs: <PATHS_AND_SHA_OR_NOT_APPLICABLE>
 Provisioning state / active run: <STATE_AND_REFERENCE>
 Retention / cleanup scope: <USER_AUTHORIZED_POLICY>
 ```
 
-Beschreibung mit der vorhandenen Proxmox-Konfigurationsfunktion aktualisieren
-(z. B. `qm set` mit `--description`, anhand installierter Hilfe prüfen).
-Vorhandene Benutzertexte erhalten; nur den eigenen abgegrenzten Block ändern.
-Keine Passwörter als feste Literale in öffentlichen Skripten oder Chatbefehlen
-einbetten. Werte lokal erzeugen, beim Konfigurieren einsetzen und deren unnötige
-Ausgabe/Trace-Logging vermeiden. Tunnel-Keys und Host-Root-Zugangsdaten gehören
-nicht zu diesem Gast-Login-Block.
+Update only your own bounded Description block with existing configuration tools,
+e.g. `qm set --description` after checking installed help. Preserve unrelated text.
+Generate passwords locally and suppress unnecessary output/trace logging. Do not
+embed them as literals in public scripts or chat commands.
 
-## Wiederaufnahme nach längerer Pause
+## Resume after an interruption
 
-Zuerst Hostidentität, VM-Bestand und passenden Description-Block lesen. VMID,
-Zweck, Credentials und vorherige Laufkennung übernehmen; Istzustand/Gastidentität
-erneut prüfen. Fehlende Daten oder ein Loginfehler sind ein konkreter
-Reparaturschritt, kein Anlass für eine blinde Neuanlage oder Passwortrotation.
-Vor dem erneuten Teststart alten Prozess/Lauf und Ergebnisdateien prüfen.
-Löschen, Wiederherstellen von Snapshots oder Ersetzen einer VM nur im dafür
-erteilten Umfang. Ein Installationsauftrag löscht keine älteren Test-VMs.
+Recheck host identity, VM inventory and the matching Description. Reuse the VM
+ID, purpose, login and previous run reference; verify current guest identity.
+Missing data or a failed login calls for a specific repair, not blind creation or
+password rotation. Inspect the old process/run and its result before starting
+another test. Delete, restore snapshots or replace a VM only when explicitly
+within scope. An installation task does not authorize deleting older VMs.

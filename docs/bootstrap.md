@@ -1,141 +1,107 @@
-# Bootstrap auf Debian oder einem Test-Proxmox
+# Local installation and guided setup
 
-Ergänzung zum ursprünglichen Skillauftrag: ein öffentlich bereitstellbares
-Installationsskript vorbereiten. Anschließend wurde dessen Installation auf dem
-Test-Proxmox ausdrücklich beauftragt und über AITL ausgeführt; siehe
-[Live-Protokoll](live-testproxmox.md). Der Installer bleibt unverändert; die
-spätere MCP-/VM-Abnahme ist dort als eigener Schritt dokumentiert.
+Run the installer on your own Debian server or Proxmox host, not in an ephemeral
+Codex cloud worker. The host runs the SSH-MCP server and OpenAI tunnel client.
+Codex uses the offered MCP connection to reach it.
 
-## Was der erste manuelle Schritt erledigt
+## Requirements
 
-Auf der Zielmaschine zunächst die lokale Konsole/AITL öffnen. Es besteht
-zu diesem Zeitpunkt noch keine Shell-Verbindung aus Codex. Das Skript aus der
-README herunterladen, prüfen und als root mit `--install` starten. Ohne Parameter
-oder mit `--dry-run` erkennt es den lokalen Plattformtyp und zeigt einen Plan;
-das ist keine Installationssimulation und prüft weder Netzwerk noch Paketverfügbarkeit.
+- Debian 12/13, or a Proxmox host based on those releases, with systemd.
+- root access, amd64 or arm64, `curl`, CA certificates, Bash, tar and coreutils.
+- Working signed apt sources and outbound HTTPS to the locked upstream downloads,
+  Python build dependencies and OpenAI. No inbound internet listener is required.
+- For tunnel setup: an existing tunnel ID and a restricted runtime key with Tunnels
+  Read + Use. [Account setup](onboarding.md) explains where to get them.
 
-Voraussetzungen: Debian 12/13, laufendes systemd, amd64/arm64, `ss` aus iproute2,
-Paketquellen und ausgehendes HTTPS zu GitHub, codeload.github.com und PyPI.
-Die Zielmaschine vor Installation prüfen. Proxmox wird anhand von `/etc/pve`
-sowie vorhandenem `pveversion` und `qm` erkannt. Teilweise vorhandene Merkmale
-führen zu einem Fehler, nie zu einem stillen Debian-Fallback. Vorhandenes
-OpenSSH wird auf Proxmox vorausgesetzt und muss aktiv sein. Die Erkennung deckt
-Debian 12/13 mit passenden Proxmox-Komponenten ab; Versions-/Installationstests
-auf realen Proxmox-8/9-Hosts bleiben Teil der Live-Abnahme.
+The README's one-line installer downloads a versioned bundle and verifies its
+embedded SHA-256 before extracting or running it. The initial launcher itself is
+trusted through the versioned HTTPS URL; a hash from the same publisher is not an
+independent publisher signature. For inspection before execution, download
+`scripts/install.sh` from the release tag, read it, then run it as root.
 
-Das Skript:
+`bash scripts/setup.sh --local-only` installs/checks local components without
+prompting for tunnel credentials. On a fresh Proxmox installation the guide asks
+whether to grant VM administration. Passing `--proxmox-admin` explicitly selects
+full host-root administration; the default is the unprivileged test account.
+Existing installations retain their recorded rights. The wizard does not silently
+add admin rights, replace keys, upgrade upstreams or overwrite unrelated runtimes.
 
-- installiert nur fehlende Pakete für Python-venv, curl/CA, OpenSSL und OpenSSH
-  (`--no-upgrade`; transitive Paketabhängigkeiten können weitere Änderungen erfordern);
-- installiert slepp/ssh-mcp vom geprüften Commit in eine eigene venv;
-- installiert OpenAIs Tunnel-Client v0.0.16 mit mitgeliefertem cloudflared,
-  Manifest und Lizenzhinweisen nach `/opt/codex-ssh`;
-- prüft fest eingetragene SHA-256-Werte der Upstream-Downloads; kein `latest`-Download;
-- erzeugt das eigene Konto `codex-test`, ohne sudo-Rechte, und private lokale
-  Loopback-Schlüssel; kein Schlüsselinhalt wird ausgegeben oder veröffentlicht;
-- startet ausschließlich den separaten Dienst `codex-ssh-loopback.service` auf
-  `127.0.0.1:22222`, mit Schlüsselauthentifizierung und ausgeschaltetem Forwarding;
-- pinnt dessen direkt lokal erzeugten Hostschlüssel im known_hosts des Testkontos;
-  dies verwendet keinen ungeprüften Netzwerk-Scan als Vertrauensanker;
-- führt einen kurzen lokalen SSH-Aufruf aus, schreibt Identitätsdaten ausschließlich
-  nach `/etc/codex-ssh/identity.txt` und meldet die ausstehende Tunnel-/Codex-Prüfung.
+## What the bootstrap changes
 
-Für spätere Sitzungen liegt außerdem `/opt/codex-ssh/README.txt` mit Plattform,
-Alias-/Programm-/Konfigurationspfaden und Wiederaufnahmehinweisen auf der Maschine.
-Der Agent findet die Gast-Logins danach im jeweiligen VM-Description-Block.
+The underlying `scripts/bootstrap-debian.sh` also supports `--dry-run` (default),
+`--install`, `--check` and `--help`. `--proxmox-admin` is valid only with
+`--install` on Proxmox. It:
 
-Für die Nutzung einer bereits eingerichteten Installation zuerst
-[Zugang und Hostvertrauen](../.agents/skills/codex-ssh/references/zugang.md) lesen.
-Das MCP stellt den SSH-Client auf diesem privaten Host bereit; seine Aliase und
-Schlüssel werden dort ausgewertet. Der Agent muss sie nicht nochmals in die
-Cloud kopieren. Ein normales Root-Passwort ist für den vorhandenen Admin-Alias
-nicht erforderlich. Das Manifest bleibt eine lokale Identitätsreferenz; nach
-TOFU beobachtete Angaben sind keine unabhängige Erstverifikation.
+1. Identifies Debian or Proxmox; partial PVE signals stop rather than falling back.
+2. Installs missing Python-venv/OpenSSH/curl/CA/OpenSSL packages with no general
+   dist-upgrade. Transitive dependencies may still be installed or updated.
+3. Downloads the pinned SSH-MCP commit and tunnel-client binaries and verifies
+   their expected SHA-256 values. [Dependency policy](dependencies.md) records
+   exactly what is fixed and what is not reproducible.
+4. Creates `codex-test` without sudo, with private local SSH keys and directories.
+5. Starts a separate SSH service on `127.0.0.1:22222`, with password authentication
+   and forwarding disabled. Its locally created host key is pinned directly.
+6. Optionally adds the separate `codex-proxmox-host` root alias and key. This is
+   full host-root access, not a VM-ID-limited permission system.
+7. Writes the root-readable identity manifest and performs local SSH self-checks.
 
-Auf Proxmox gibt es zwei explizite Installationsvarianten:
+Existing host SSH configuration and root authorized_keys are preserved. If SSH
+was not installed, the new distribution listener is masked so it will not become
+a public service after reboot. The installer refuses existing service-policy or
+reserved-path conflicts. It does not create VMs or change bridge/storage/cluster
+configuration. Project packages and tests belong in guests on Proxmox.
 
-- `--install`: Infrastruktur und unprivilegiertes Testkonto; vorhandene separat
-  eingerichtete Verwaltungsrechte/API-Zugänge weiterverwenden.
-- `--install --proxmox-admin`: zusätzlich separater SSH-Alias
-  `codex-proxmox-host` für **vollen Host-Rootzugriff** über Loopback. Ein eigener
-  Schlüssel liegt unter `/var/lib/codex-test/.ssh/proxmox_admin`, der erlaubte
-  öffentliche Schlüssel unter `/etc/codex-ssh/proxmox-admin-authorized_keys`.
-  Der eigene sshd erlaubt Root nur mit diesem Schlüssel; bestehendes System-SSH
-  und `/root/.ssh/authorized_keys` bleiben unangetastet. Das ist keine
-  serverseitige Einschränkung auf bestimmte VMs. Der Skill bindet den Arbeitsumfang.
+## Files and credentials
 
-Die Admin-Option ist auf Plain Debian unzulässig. Auch auf Proxmox startet der
-Tunnel-Client später als `codex-test`, nicht als Root. Das Bootstrap erstellt,
-startet oder löscht keine VMs und nimmt keine Änderungen an Bridges, Storage
-oder Clusterkonfiguration vor. Es richtet nur den Zugang für den anschließenden
-VM-Arbeitsauftrag ein. Tests und deren Abhängigkeiten gehören dann in Gäste.
+| Path on the local host | Purpose |
+| --- | --- |
+| `/opt/codex-ssh/` | Pinned tunnel client and installation record |
+| `/etc/codex-ssh/` | Loopback SSH configuration, host key, local identity |
+| `/var/lib/codex-test/mcp/` | Isolated SSH-MCP Python environment |
+| `/var/lib/codex-test/.ssh/` | Client aliases, login keys and known_hosts |
+| `/var/lib/codex-test/.config/codex-ssh/guided/` | Guided setup state, profiles, protected runtime-key file and diagnostic log |
+| `/opt/codex-ssh/configure-tunnel.py` | Reconfigure/check the guided runtime |
 
-Wenn OpenSSH-Server vorher nicht installiert war, werden die neuen Standardunits
-`ssh.service`/`ssh.socket` maskiert, damit auch bei Neustart kein neuer öffentlicher
-Standardlistener startet. Eine temporäre `policy-rc.d` blockiert automatische
-Dienststarts während dieser Paketinstallation und wird anschließend entfernt.
-Bei bestehender Service-Policy oder SSH-Anpassung stoppt das Skript stattdessen.
-Eine bereits installierte OpenSSH-Konfiguration wird nicht umgeschrieben oder
-abgeschaltet; deren bisherige Erreichbarkeit bleibt Betreiberverantwortung.
-Die apt-Installation fehlender Pakete kann Abhängigkeiten und Paket-Hooks
-ausführen. Ein allgemeines Host-Upgrade ist nicht Teil dieses Skripts.
+The wizard reads the runtime key using a hidden terminal prompt, writes it with
+mode 0600, and passes only a `file:` reference to tunnel-client. It does not ask
+for an admin key, emit the runtime key or commit it. State directories are 0700.
+The tunnel and its stdio MCP child run as `codex-test`; the optional SSH root
+alias is a separate, explicit escalation path.
 
-Falls vorhandene Enterprise-Quellen `401 Unauthorized` liefern, lässt sich für
-einen einzelnen Lauf eine bereits vorhandene Debian-Quelldatei auswählen:
-`CODEX_SSH_APT_SOURCES=<ABSOLUTE_VORHANDENE_SOURCES_DATEI>` vor dem
-Installationsaufruf setzen. Das ändert keine permanente apt-Konfiguration und
-schaltet keine Signaturprüfung ab. Alternativ auf einem beauftragten Test-Proxmox
-die offiziellen No-Subscription-Quellen mit Sicherung der Originale konfigurieren.
-Diese Hostentscheidung nimmt das Bootstrap nicht automatisch vor.
+Guest test credentials follow the requested Proxmox Description rule. Host-root,
+private SSH keys and tunnel credentials do not belong in VM descriptions.
 
-Die Quellarchive und Client-Binärarchive sind gepinnt, apt-Pakete und Python-
-Buildabhängigkeiten (z. B. setuptools) werden aus den konfigurierten Quellen
-bezogen. Das ist kein vollständig reproduzierbarer oder unabhängig auditierter
-Build. Die Client-Version wurde gegen GitHubs Release-Metadaten/Checksumme geprüft;
-die aktuell im eigenen Platform-Konto unterstützte Version zusätzlich abgleichen.
+## Runtime lifecycle
 
-## Was noch manuell bleibt
+The wizard uses the existing tunnel client's `runtimes connect` supervision and
+then runs `doctor` and `runtimes status`. It does not build another supervisor,
+SSH server implementation or tunnel transport. Running/healthy/ready is local
+readiness, not proof of successful product tool discovery or control-plane polling.
+Complete the [product connection check](onboarding.md#3-connect-and-test).
 
-1. Als root `/etc/codex-ssh/identity.txt` lokal prüfen. Die Maschinen-ID ist noch
-   kein Beleg, dass die Maschine das beabsichtigte Ziel ist: zunächst in der
-   richtigen Host-/Gastkonsole verifizieren. Werte in die lokale Zielzuordnung
-   für den Codex-Auftrag übernehmen, nicht ins öffentliche Repository.
-2. Mit `runuser -l codex-test` zum Testkonto wechseln, `umask 077` setzen und
-   `/opt/codex-ssh/tunnel-client help quickstart` lesen. Als stdio-Befehl
-   `/var/lib/codex-test/mcp/bin/ssh-mcp` verwenden. Keine sudo-/Root-MCP-Verbindung.
-3. Im vorgesehenen OpenAI-Konto Tunnel und Workspace-Zuordnung prüfen/anlegen.
-   Runtime-Key geschützt lokal eingeben, niemals als Shell-Argument oder Chattext.
-   Konkrete Flags und Secret-Referenzen anhand der installierten Client-Hilfe und
-   des [offiziellen Onboardings](https://github.com/openai/tunnel-client/blob/master/docs/onboarding.md)
-   verwenden. Für dauerhaften Betrieb dessen vorhandenen Runtime-Mechanismus nutzen;
-   hier wird kein eigener Tunnel-Dienst oder Supervisor gebaut.
-4. Tools in der tatsächlichen Codex-Cloud-Sitzung entdecken und die
-   [Live-Abnahme](pruefungen.md) durchführen. Alias `codex-test-local`, Konto
-   `codex-test`, Arbeitsbereich `/var/lib/codex-test/work`, Logs
-   `/var/lib/codex-test/results`; Commit/Checkout und Testbefehl fehlen noch.
-   Diese lokalen Standardwerte sind kein eingebautes Ziel im Skill.
-5. Bei Proxmox Node, Storage, Bridge, Template/Image und Ressourcenrahmen lokal
-   zuordnen. Danach den [Proxmox-Skillablauf](../.agents/skills/codex-ssh/references/proxmox.md)
-   verwenden: passende VM wiederfinden oder anlegen, Gast-Login/Testpasswort in
-   deren Description speichern, SSH/Identität prüfen und im Gast testen. Die
-   Description ist auch für Benutzer und neue Agentensitzungen die Wiederanlaufakte.
+The native managed runtime can survive the terminal closing; this installer does
+not install a tunnel startup service for reboot. After host restart, rerun
+`python3 /opt/codex-ssh/configure-tunnel.py` as root to reconnect the recorded
+runtime. For deployment-specific autostart follow the upstream
+[systemd deployment guide](https://github.com/openai/tunnel-client/blob/v0.0.16/docs/deployment/systemd-vm.md).
 
-Bis Schritt 4 ist die Maschine lokal vorbereitet, aber kein Fernzugriff aus Codex
-nachgewiesen. Ein laufender Tunnel allein genügt ebenfalls nicht.
+## Checks and recovery
 
-## Wiederholung und Fehler
+```bash
+bash scripts/bootstrap-debian.sh --check
+python3 /opt/codex-ssh/configure-tunnel.py --status
+```
 
-`--check` prüft nur vorhandenen lokalen Dienst/SSH und Client-Version. Es sagt
-nichts über MCP-Discovery, Tunnel, Prozesswiederaufnahme oder Tests aus.
-Eine vollständig markierte Installation wird bei identischem `--install` nur
-geprüft; eine abweichende Plattform oder Admin-Option wird abgewiesen. Keine
-stillen Rechteänderungen bei Wiederholung. `--check` benötigt keine Admin-Option.
-Bei vorhandenen reservierten Pfaden oder Konto wird nichts überschrieben. Nach
-Teilabbruch zuerst Zustand prüfen; kein blindes Löschen, kein automatischer
-Rollback. Eventuell installierte Pakete, Maskierungen und ein bereits gestarteter
-Loopback-Dienst bleiben bestehen. Für eine wirklich frische VM ist Wiederherstellen
-eines vorherigen Proxmox-Snapshots häufig der klare neue Ausgangspunkt.
+An existing completed bootstrap is checked, not reinstalled. Partial installations
+stop for inspection; no automatic deletion or rollback. An existing generated
+key file or unrelated runtime alias is not overwritten. Interrupted configuration
+keeps its local state; inspect it before retrying. Local SSH or a running tunnel
+alone is not a successful guest test.
 
-Kein automatisches Deinstallationsskript: vor Löschen von Benutzer, Logs oder
-Checkout deren Inhalte prüfen. Den eigenen Loopback-Dienst kann der Betreiber
-gezielt mit `systemctl disable --now codex-ssh-loopback.service` stoppen.
+If enterprise apt sources return 401, fix the appropriate sources deliberately.
+The installer does not silently switch Proxmox subscriptions. An already approved
+source file can be selected for a single run with `CODEX_SSH_APT_SOURCES` set to
+its absolute path; signature verification stays enabled.
+
+For initial root access use the local console or an already authorized terminal
+connection. This project does not grant itself access to an unassigned machine.

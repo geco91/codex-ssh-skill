@@ -1,135 +1,104 @@
-# Live-Einrichtung und erster MCP-/Gast-Test, 19.10.2026
+# Live setup and first MCP/guest smoke test
 
-Vom Benutzer ausdrücklich freigegebener Test-Proxmox. Die Befehle wurden über
-die vorhandene AITL-Anbindung zur lokalen Prüfung übertragen; ausgewertet wurde
-die anschließend menschlich geteilte Terminalausgabe. Private Hostnamen,
-Bindungscodes und Zugangsdaten bleiben außerhalb dieses Repositorys.
-Die folgenden Abschnitte bis „Erste Produkt-MCP-/Gast-Abnahme“ beschreiben den
-früheren AITL-Prüfstand; der spätere Nachweis folgt am Ende.
+Date: 2026-10-19. This record separates the original human-reviewed local setup
+from the later product-MCP test. Real hostnames, private addresses, machine IDs,
+keys and credentials are intentionally omitted.
 
-## Beobachtet und ausgeführt
+## Original AITL setup
 
-- Proxmox 9.2.2, Debian 13.5, vorhandenes aktives SSH. Die gelesenen
-  `qm list`-/`pct list`-Ausgaben zeigten keine Gäste.
-- Das Bootstrap wurde vor Ausführung übertragen und auf dem Host per SHA-256
-  geprüft: `fed824d64fc8ac8651e3b421ce28ebc7a92b14e8a5e07a5b831e038d0ba33bcb`.
-  Dies ist der ausgeführte Snapshot; die spätere lokale Ergänzung der optionalen
-  apt-Quelldateiauswahl ist darin noch nicht enthalten.
-- Erster Installationslauf: `BOOTSTRAP_EXIT=100`, weil beide aktiven Proxmox-
-  Enterprise-Quellen mit `401 Unauthorized` antworteten. Zu diesem Zeitpunkt
-  waren die reservierten Installationspfade und das Testkonto noch nicht vorhanden.
-- Auf ausdrücklichen Auftrag wurden die originalen Dateien
-  `pve-enterprise.sources` und `ceph.sources` gesichert, beide Enterprise-Einträge
-  mit `Enabled: no` deaktiviert und `proxmox.sources` mit `pve-no-subscription`
-  ergänzt. Ceph-Konfiguration war nicht vorhanden. Bestehender Proxmox-Signaturschlüssel
-  bleibt verwendet; keine abgeschaltete Signaturprüfung und kein Paketupgrade.
-- Backup auf dem Testhost:
-  `/root/codex-ssh-bootstrap-fed824d64fc8/apt-sources-backup`.
-- Anschließendes `apt-get update`: `APT_UPDATE_EXIT=0`; die offizielle
-  No-Subscription-Paketliste wurde erfolgreich geladen.
+The user authorized the test Proxmox. Initial commands ran through the existing
+Admin in the Loop connection; only terminal output shared by the human was used.
+Observed: Proxmox 9.2.2, Debian 13.5, active host SSH and no guests in `qm list`/
+`pct list`. That human-reviewed path did not prove SSH-MCP access from Codex.
 
-Quelle für den Repository-Eintrag:
-[offizielle Proxmox-Paketquellen-Dokumentation](https://github.com/proxmox/pve-docs/blob/master/pve-package-repos.adoc).
+The executed bootstrap snapshot was checked on the host against SHA-256
+`fed824d64fc8ac8651e3b421ce28ebc7a92b14e8a5e07a5b831e038d0ba33bcb`.
+This preceded the optional apt-source-file addition. The first installation exited
+100 because both Enterprise sources returned 401 Unauthorized. The reserved
+installation directories and test account did not yet exist.
 
-## Installationsstatus
+At the user's explicit request, the original `pve-enterprise.sources` and
+`ceph.sources` were backed up and disabled with `Enabled: no`; `proxmox.sources`
+was added with the official `pve-no-subscription` repository. No Ceph configuration
+was present. Existing Proxmox signing keys stayed in use, with no disabled package
+signature checks or general host upgrade. The local backup was under
+`/root/codex-ssh-bootstrap-fed824d64fc8/apt-sources-backup`.
+The next `apt-get update` exited 0. Source:
+[official Proxmox repository documentation](https://github.com/proxmox/pve-docs/blob/master/pve-package-repos.adoc).
 
-Der erneute Installationslauf mit `--install --proxmox-admin` endete mit
-`BOOTSTRAP_EXIT=0`. Die geteilte Ausgabe belegt:
+The repeated `--install --proxmox-admin` run returned `BOOTSTRAP_EXIT=0`:
 
-- slepp-ssh-mcp 0.2.0 in der eigenen venv installiert;
-- Tunnel-Client 0.0.16 installiert, beide Upstream-Downloads mit passender Prüfsumme;
-- eigener Loopback-SSH-Dienst aktiviert;
-- `loopback-ssh-ok` für das Testkonto;
-- erfolgreicher Root-Identitäts-/Proxmox-Versionscheck über den eigenen Admin-Alias.
+- slepp-ssh-mcp 0.2.0 was installed in its own venv.
+- tunnel-client 0.0.16 was installed; both downloaded archives matched their hashes.
+- The separate loopback-only SSH service was enabled.
+- The unprivileged SSH self-test printed `loopback-ssh-ok`.
+- The separate root alias passed an identity/Proxmox-version check.
 
-apt installierte vier neue Python-venv/Wheel-Pakete und aktualisierte vier
-Python-3.13-Abhängigkeiten von Debian-Revision deb13u2 auf deb13u5. Ein allgemeines
-Proxmox-Upgrade fand nicht statt. `--no-upgrade` verhindert nicht jede von einem
-neu installierten Paket benötigte Abhängigkeitsaktualisierung.
+apt installed four Python venv/wheel packages and updated four Python 3.13
+ dependencies from Debian revision deb13u2 to deb13u5. There was no general
+Proxmox upgrade; `--no-upgrade` does not prohibit all dependency upgrades.
 
-Ein zusätzlicher lokaler Test des installierten MCP-Programms ist mit
-`MCP_LOCAL_OK` belegt: initialize, Tool-Discovery und zwei harmlose `ssh_exec`-
-Aufrufe lieferten die erwarteten Ausgaben, Exitcode 0 und keinen Timeout.
-Getestet wurden Hello World als `codex-test` und `id -u` über den Proxmox-
-Admin-Alias. Beide Konten liegen auf dem Host; die Bezeichnung „guest-account“
-im einmaligen Prüfmarker meinte das unprivilegierte Testkonto, keine existierende
-Gast-VM. Es wurde weiterhin keine VM erstellt.
+A local MCP initialize/discovery test and two harmless `ssh_exec` calls passed
+with `MCP_LOCAL_OK`, exit 0 and no timeout. They tested Hello World as `codex-test`
+and `id -u` through the admin alias. Both accounts were on the host; a one-off
+“guest-account” marker did not mean a guest VM existed.
 
-Die Runtime-Zugangsdaten wurden anschließend verdeckt lokal unter
-`/var/lib/codex-test/.config/codex-ssh/` eingegeben. Die Bestätigung
-`TUNNEL_CREDENTIALS_READY` liegt vor; tatsächliche Werte wurden nicht geteilt.
-Der vorhandene Tunnel-Client hat den Alias `codex-test-proxmox` gestartet und
-anschließend dessen Status gelesen: `process_running=true`, `healthy=true`,
-`ready=true`, `CONNECT_EXIT=0`, `STATUS_EXIT=0`. Das Profil liegt unter
-`/var/lib/codex-test/.config/codex-ssh/profiles/codex-ssh.yaml` und verwendet eine
-Dateireferenz auf den Runtime-Key. Es wurde keine kostenpflichtige
-Agentenausführung als Ersatz gestartet.
+Runtime credentials were entered privately under the test account's local config.
+`TUNNEL_CREDENTIALS_READY` was shared without values. Native tunnel startup/status
+returned process_running, healthy and ready true, with connect/status exit 0.
+The profile referenced a protected runtime-key file. No paid agent API replaced
+the existing connection. Control-plane polling was still unknown in that snapshot.
+The user reported the product connection as “Codex-Proxmox”; tools were not yet
+visible in that earlier session.
 
-Das aktive Control-Plane-Polling war im gelesenen Status noch `unknown`
-(kein Live-Admin-Systemsnapshot). Eine zusätzliche doctor-/Health-Abfrage wurde
-über AITL vorgeschlagen, deren geteiltes Ergebnis steht noch aus. Der Benutzer
-meldete die Verbindung des Tunnels als MCP mit dem Namen „Codex-Proxmox“.
-In dieser Sitzung sind dessen SSH-Tools bislang nicht sichtbar; kein echter
-Aufruf über diese neue Produktverbindung ausgeführt. Lokale Bereitschaft,
-Benutzerbericht und bestandene Produkt-End-to-End-Abnahme bleiben getrennt.
+## First product-MCP and guest verification
 
-Ein erfolgreicher AITL-Rückweg oder apt-Update ist weiterhin kein Nachweis für
-SSH-MCP über Secure MCP Tunnel aus Codex. Tunnel-Zuordnung, VM-Anlage,
-Gast-Description mit tatsächlichem Test-Login und Integrationstest bleiben
-getrennte Abnahmeschritte.
+In the subsequent session the selected connection's actual SSH tools were offered
+and callable. A direct-address attempt after explicit TOFU authorization saved a
+host key but failed authentication with exit 255. The password had not been passed,
+so this did not demonstrate a wrong password. An MCP session also failed without
+providing an accessible SSH password prompt.
 
-## Erste Produkt-MCP-/Gast-Abnahme
+Repository research identified the existing `codex-proxmox-host` alias. Its bounded
+identity command with strict host-key checking returned exit 0, root and the
+expected directory. The machine ID matched the local bootstrap manifest. This
+alias reused the existing key/pin and did not need the direct-address TOFU step.
 
-In der anschließenden Sitzung waren die SSH-Werkzeuge der ausgewählten
-Codex-Proxmox-Produktverbindung tatsächlich angeboten und aufrufbar. Ein direkter
-Anmeldeversuch mit der privaten Hostadresse wurde nach ausdrücklich freigegebenem
-TOFU mit Exitcode 255 (`Permission denied`) beendet. Das genannte Passwort wurde
-dabei nicht übergeben; dies war kein Nachweis eines falschen Passworts. Auch die
-versuchte MCP-Session öffnete keinen bedienbaren SSH-Passwortprompt.
+Inventory still contained no VMs. An authorized Debian 13 test guest was created
+with 1 vCPU, 1024 MiB RAM and an 8 GiB disk. The official
+`debian-13-generic-amd64.qcow2` from
+`https://cloud.debian.org/images/cloud/trixie/latest/` matched its HTTPS-delivered
+SHA512SUMS entry. The exact hash was saved in the local VM record. No additional
+upstream signature check was performed. The existing bridge already carried the
+assigned guest network, so no extra guest VLAN tag was added.
 
-Nach Recherche im Repository wurde der bereits eingerichtete Alias
-`codex-proxmox-host` mit strikter Hostschlüsselprüfung verwendet. Der begrenzte
-Identitätsaufruf lieferte Exitcode 0, root und das erwartete Arbeitsverzeichnis.
-Die Maschinen-ID stimmte mit dem beim Bootstrap hinterlegten lokalen Manifest
-überein. Der Admin-Alias nutzte also die vorhandene Schlüssel-/Hostbindung;
-er benötigte den TOFU-Schritt der direkten Verbindung nicht.
+The first boot attempted network boot and showed “No bootable device”. The saved
+boot order excluded the system disk. Only this newly created VM was stopped;
+after explicitly setting `order=scsi0` and starting again, Debian booted. The
+reason for the earlier unexpected order was not conclusively established. This
+motivated reading back the saved configuration after updates.
 
-Der Bestand enthielt noch keine VMs. Im beauftragten Ressourcenrahmen wurde
-eine Debian-13-Test-VM mit einer CPU, 1024 MiB RAM und 8 GiB Systemdisk angelegt.
-Verwendet wurde das offizielle `debian-13-generic-amd64.qcow2` aus
-`https://cloud.debian.org/images/cloud/trixie/latest/`, geprüft gegen die per
-HTTPS gelieferte SHA512SUMS-Datei. Die tatsächlich verwendete Prüfsumme ist in
-der lokalen VM-Akte hinterlegt. Das ist ein Prüfsummennachweis, kein zusätzlich
-durchgeführter Signaturnachweis. Die vorhandene Bridge transportierte bereits
-das beauftragte Gastnetz; ein zusätzliches Gast-VLAN-Tag wurde nicht gesetzt.
-Private Adressen, Maschinenkennungen, Schlüssel und Gastpasswort stehen nicht
-in diesem öffentlichen Protokoll.
+Observed final results:
 
-Der erste Start zeigte Netzwerkboot und „No bootable device“. Die gespeicherte
-Bootreihenfolge enthielt die Systemdisk nicht. Nach Stoppen ausschließlich der
-eigenen neuen VM, explizitem Setzen von `order=scsi0` und erneutem Start bootete
-Debian. Die Ursache für die zuvor abweichende Reihenfolge wurde nicht abschließend
-geklärt; künftig nach den Konfigurationsänderungen den gespeicherten Stand lesen.
+- The provisioning script saved exit 0; the boot issue was subsequently corrected.
+  `cloud-init status --wait` returned `status: done`.
+- The guest reported Debian 13.7; nginx and QEMU Guest Agent were active.
+- Public guest host key and machine ID came through QEMU Guest Agent. A dedicated
+  guest alias used that key; the MCP guest identity call exited 0 and matched.
+- Key login through the MCP alias and a separate password login through existing
+  OpenSSH both passed; the password check exited 0. Password material stayed local.
+- HTTP from the guest returned 200 and expected Hello World content; the same
+  page was also reachable from the Proxmox host.
+- Generated guest credentials, image checksum, identity and check results were
+  recorded in the VM Description. The user confirmed the first test succeeded.
 
-Belegte Endergebnisse dieser Sitzung:
+This establishes the concrete product-MCP → Proxmox → guest → HTTP smoke test.
+It did not test a project checkout/commit, a separate Codex Cloud task, negative
+host-key cases, post-reboot/session recovery or a full plain-Debian bootstrap.
 
-- Provisioning-Skript endete mit gespeicherten Status 0; der Bootfehler wurde
-  anschließend korrigiert. `cloud-init status --wait` meldete `status: done`.
-- Der Gast meldete Debian 13.7; nginx und QEMU Guest Agent waren `active`.
-- Öffentlicher Gast-Hostschlüssel und Maschinen-ID wurden über den QEMU Guest
-  Agent erfasst und für einen eigenen Gastalias verwendet. Der Gast-Identitäts-
-  aufruf über MCP endete mit Exitcode 0 und stimmte mit diesen Werten überein.
-- Schlüssel-Login über den Gastalias und separater Passwort-Login über den
-  vorhandenen OpenSSH-Client wurden geprüft; der Passworttest lieferte Exitcode 0.
-  Das Passwort wurde lokal erzeugt und aus der geschützten Akte verwendet.
-- HTTP-Abruf der Gastadresse auf Port 80 lieferte im Gast HTTP 200 und den
-  erwarteten Hello-World-Inhalt; derselbe Inhalt war auch vom Proxmox-Host abrufbar.
-- Tatsächlicher Gastbenutzer, Testpasswort, Image-Prüfsumme, geprüfte Identität
-  und Ergebnisstatus wurden in der Proxmox-Description der zugeordneten VM
-  hinterlegt. Der Benutzer bestätigte den ersten kleinen Test als erfolgreich.
+## Guided installer revision
 
-Damit ist erstmals der konkrete Weg Produkt-MCP → Proxmox → Gast → HTTP belegt.
-Es war ein Infrastruktur-/Webserver-Smoke-Test ohne Projekt-Checkout oder
-Projekt-Commit-SHA. Ein anderer Codex-Cloud-Task, Wiederaufnahme nach Sitzungs-
-oder Serverwechsel, negative Hostschlüsseltests, Projekt-Integrationstests und
-vollständiger Plain-Debian-Bootstrap sind damit nicht geprüft.
+Release 0.2.0 adds English documentation and guided runtime configuration. The
+historic live test above predates those changes. Unit/integration checks of the
+new configuration code and pinned client CLI are separate evidence; they do not
+claim another live installation or a successful production control-plane call.

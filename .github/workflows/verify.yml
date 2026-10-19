@@ -1,0 +1,24 @@
+name: Verify installer and upstream pins
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 7 * * 1'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Check shell syntax and installer behavior
+        run: |
+          bash -n scripts/bootstrap-debian.sh scripts/setup.sh scripts/install.sh
+          python3 -m unittest discover -s tests -v
+          python3 scripts/check-upstreams.py --offline
+          python3 scripts/package-release.py --version 0.2.0 --check
+          git diff --check
+      - name: Check pinned upstream bytes
+        run: python3 scripts/check-upstreams.py

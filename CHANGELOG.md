@@ -1,40 +1,47 @@
-# Versionshinweise
+# Changelog
+
+## v0.2.0 — 2026-10-19
+
+- Translate current documentation and skill instructions to English.
+- Restructure the README around local-server/Proxmox use, architecture, one-line
+  installation, account prerequisites, MCP connection and skill import.
+- Add project icon, header banner and reusable architecture diagram.
+- Add a versioned, checksum-verified guided installer bundle and hidden runtime-key
+  input. Use tunnel-client's existing native runtime manager and preserve existing
+  credentials/aliases on repeat setup.
+- Record upstream pins in a dependency lock and verify their bytes during install
+  and with a weekly GitHub Actions job. No automatic upstream upgrades.
+- Add setup/integrity regression checks. The guided revision has not been installed
+  live on another host; the earlier smoke test remains separate evidence.
 
 ## v0.1.1 — 2026-10-19
 
-- Dokumentierte SSH-Aliase und vorhandene Schlüssel vor neuen Zugangsrückfragen
-  ermitteln; Tunnel-, Benutzeranmeldung und Hostschlüssel klar unterscheiden.
-- Zielbezogen ausdrücklich freigegebenes TOFU mit `accept-new`, dauerhaftem
-  known_hosts und anschließend `yes`; keine automatische Schlüsselrotation.
-- Identitäts-Erstaufnahme ohne Soll-Maschinen-ID als TOFU kennzeichnen; bei
-  Hostverwaltung keinen unnötigen Projekt-Checkout verlangen.
-- Gedeckte VM-Routine ohne wiederholte Freigabefragen, gespeicherte Boot-/Disk-/
-  Netzkonfiguration kontrollieren und VLAN-Anschluss von Gast-Tag unterscheiden.
-- Provisioning, tatsächliche Gast-Anmeldearten und erwartete HTTP-Antwort getrennt
-  prüfen und in der Wiederanlaufakte dokumentieren.
-- Ersten erfolgreichen Produkt-MCP-/Gast-/HTTP-Smoke-Test dokumentieren;
-  frühere Prüfstände und noch offene Abnahmen getrennt halten.
+- Discover documented SSH aliases and existing keys before asking for credentials.
+- Explain tunnel authentication, SSH user login and SSH host-key trust separately.
+- Allow explicitly authorized target-specific TOFU with `accept-new`, persistent
+  known_hosts and subsequent `yes`; never silently rotate changed keys.
+- Record first identity enrollment honestly when no expected machine ID exists.
+- Reuse existing scope for routine VM work. Check saved boot/disk/network settings
+  and distinguish VLAN attachment from an extra guest tag.
+- Verify actual guest login methods, provisioning and expected HTTP content.
+- Document the first successful product-MCP/guest/HTTP smoke test separately from
+  historical and still-open acceptance checks.
 
-Installer und veröffentlichte v0.1.0-Downloads bleiben unverändert. Aktualisierter
-Skill-Download und Prüfsumme liegen unter `downloads/v0.1.1/`.
+The installer and published v0.1.0 files were unchanged in that release.
 
 ## v0.1.0 — 2026-10-19
 
-Erster veröffentlichter Stand für vorhandenes SSH-MCP über Secure MCP Tunnel.
+First published instruction skill for existing SSH-MCP through Secure MCP Tunnel.
 
-- Repositorylokaler Skill für Debian-Tests, Test-Proxmox und zugeordnete Gast-VMs.
-- Host-/Gastidentität, begrenzte Befehle, Logbereiche und wiederaufnehmbare Tests.
-- VM-Description als Wiederanlaufakte einschließlich der ausdrücklich gewünschten
-  Gast-Test-Logins; keine tatsächlichen Credentials im Repository oder Download.
-- Debian-/Proxmox-Bootstrap mit festgelegten Upstream-Versionen und Prüfsummen,
-  privatem Loopback-SSH und optionalem Proxmox-Verwaltungszugang.
-- Installierbare Skill-ZIP und Dokumentation zu Aufbau, Auswahl, Prüfungen und
-  beobachteter Live-Einrichtung auf einem Test-Proxmox.
+- Debian/test-Proxmox workflow, host/guest identity, bounded commands/logs and
+  resumable test runs.
+- VM Description as a resumption record, including explicitly requested guest test
+  credentials. No real credentials in the repository or download.
+- Debian/Proxmox bootstrap with pinned upstreams and checksums, private loopback
+  SSH and optional separate host-admin access.
+- Installable skill ZIP, setup notes, source comparison and original live record.
 
-Geprüft: sechs lokale Bootstrap-Tests, Shell-Syntax/ShellCheck, Skillformat und
-Referenzen sowie tatsächlich ausgeführte lokale MCP-/SSH-Aufrufe auf dem
-Test-Proxmox. Der Tunnel-Client meldete einen laufenden, lokal bereiten Prozess.
-
-Noch offen: bestätigtes Control-Plane-Polling, echter SSH-MCP-Aufruf aus der
-gewünschten Codex-Oberfläche, Gast-VM-Anlage/Testlauf und vollständige Installation
-auf Plain Debian. Diese Version behauptet keine bestandene Cloud-End-to-End-Abnahme.
+At that release: six local bootstrap tests, shell checks and local MCP/SSH calls
+passed on the test Proxmox. Product end-to-end discovery, guest creation and full
+plain-Debian installation had not yet been established. Versioned historical ZIPs
+retain their original language and bytes; later releases provide English content.
