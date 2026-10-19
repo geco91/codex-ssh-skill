@@ -1,0 +1,4 @@
+# Ausschließlich lokale Betriebsdaten; niemals Zugangsdaten einchecken.
+.local/
+.venv/
+__pycache__/
