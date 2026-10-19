@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Check shell syntax and installer behavior
         run: |
-          bash -n scripts/bootstrap-debian.sh scripts/setup.sh scripts/install.sh
+          for script in scripts/*.sh; do bash -n "$script"; done
           python3 -m unittest discover -s tests -v
           python3 scripts/check-upstreams.py --offline
           python3 scripts/package-release.py --version 0.2.0 --check

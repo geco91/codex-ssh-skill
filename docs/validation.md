@@ -20,7 +20,7 @@ From the repository root:
 
 ```bash
 python3 -m unittest discover -s tests -v
-bash -n scripts/bootstrap-debian.sh scripts/setup.sh scripts/install.sh
+for script in scripts/*.sh; do bash -n "$script"; done
 python3 scripts/check-upstreams.py --offline
 python3 scripts/check-upstreams.py
 git diff --check
