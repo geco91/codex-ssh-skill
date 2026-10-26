@@ -36,6 +36,12 @@ def private_file(path, value, uid, gid):
         os.fchown(f.fileno(), uid, gid)
 
 
+def check_key_reference(path):
+    # Inspect metadata only; never rotate/read a saved key to recover setup.
+    if path.is_symlink() or not path.is_file() or path.stat().st_size == 0 or path.stat().st_mode & 0o777 != 0o600:
+        raise RuntimeError("Existing key must be a nonempty regular file with mode 0600; inspect locally, do not overwrite")
+
+
 def connect_args(tunnel_id, key_file):
     return ["runtimes", "connect", "--alias", ALIAS, "--tunnel-id", tunnel_id,
             "--profile", ALIAS, "--profile-dir", str(CONFIG_DIR / "profiles"),
@@ -99,29 +105,34 @@ def main():
             state = json.loads(state_file.read_text())
             tunnel_id = validate_tunnel_id(state["tunnel_id"])
             check_available(client_call(["runtimes", "list", "--json"]), tunnel_id)
-            if not key_file.is_file():
-                raise RuntimeError("Existing setup is missing its key; inspect locally instead of overwriting it")
-            with open("/dev/tty", "r+", encoding="utf-8") as tty:
-                tty.write("Existing guided setup found. Restart/reuse this same runtime? [y/N] "); tty.flush()
-                if tty.readline().strip().lower() not in ("y", "yes"):
-                    print("Existing setup preserved. Use --status to inspect it.")
+            check_key_reference(key_file)
+            with open("/dev/tty", "r", encoding="utf-8") as reader, open("/dev/tty", "w", encoding="utf-8") as writer:
+                writer.write("Existing guided setup found. Restart/reuse this same runtime? [y/N] "); writer.flush()
+                if reader.readline().strip().lower() not in ("y", "yes"):
+                    print("Phase 2/3: existing setup preserved; readiness not checked. Use --status to inspect it.")
+                    print("Phase 3/3: product connection NOT TESTED.")
                     return
         else:
             check_available(client_call(["runtimes", "list", "--json"]))
-            with open("/dev/tty", "r+", encoding="utf-8") as tty:
-                tty.write("Tunnel ID (Enter to finish setup later): "); tty.flush()
-                entered = tty.readline()
+            with open("/dev/tty", "r", encoding="utf-8") as reader, open("/dev/tty", "w", encoding="utf-8") as writer:
+                writer.write("Tunnel ID (Enter to finish setup later): "); writer.flush()
+                entered = reader.readline()
                 if not entered or not entered.strip():
-                    print("Local SSH setup is ready; tunnel configuration skipped.")
+                    print("Phase 2/3: tunnel configuration skipped. Resume: python3 /opt/codex-ssh/configure-tunnel.py")
+                    print("Phase 3/3: product connection NOT TESTED.")
                     return
                 tunnel_id = validate_tunnel_id(entered.strip())
-                with warnings.catch_warnings():
-                    warnings.simplefilter("error", getpass.GetPassWarning)
-                    key = getpass.getpass("Runtime API key (hidden): ", stream=tty).strip()
-                if not key or any(c.isspace() for c in key):
-                    raise ValueError("The runtime key must be nonempty and contain no whitespace")
-                private_file(key_file, key + "\n", account.pw_uid, account.pw_gid)
-                del key
+                if not key_file.exists():
+                    with warnings.catch_warnings():
+                        warnings.simplefilter("error", getpass.GetPassWarning)
+                        key = getpass.getpass("Runtime API key (hidden): ", stream=writer).strip()
+                    if not key or any(c.isspace() for c in key):
+                        raise ValueError("The runtime key must be nonempty and contain no whitespace")
+                    private_file(key_file, key + "\n", account.pw_uid, account.pw_gid)
+                    del key
+                else:
+                    print("Reusing the protected key from interrupted setup; keep the same tunnel ID.")
+                check_key_reference(key_file)
                 private_file(state_file, json.dumps({"tunnel_id": tunnel_id, "alias": ALIAS}) + "\n",
                              account.pw_uid, account.pw_gid)
         print("Starting the native managed runtime as codex-test...")
@@ -132,11 +143,13 @@ def main():
     print("Runtime status: " + json.dumps(flags))
     if not is_ready(status):
         raise RuntimeError("Runtime not yet confirmed ready; check the private log and native runtime status")
-    print("Local runtime is running, healthy and ready. Product discovery is still a separate check.")
+    print("SUCCESS: phase 2/3 complete — tunnel process running, healthy and ready.")
+    print("Phase 3/3: product connection NOT TESTED; no end-to-end PASS claimed.")
     print("Next: open https://chatgpt.com/plugins, add a custom MCP server, choose Tunnel,")
     print("select your tunnel, then import the Codex SSH skill ZIP in the supported skill UI.")
     print("For Codex CLI/IDE copy the skill folder to your project's .agents/skills/.")
-    print("Keep this host running. After reboot rerun this setup to reconnect the native runtime.")
+    print("Local readiness does not prove reboot persistence. This installer does not configure tunnel autostart.")
+    print("After reboot: python3 /opt/codex-ssh/configure-tunnel.py — choose reuse to reconnect with saved keys.")
     print("First task: use $codex-ssh to verify the assigned host identity before making changes.")
 
 

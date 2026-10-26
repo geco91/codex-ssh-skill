@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.2.1 — prepared, not released
+
+- Diagnose APT dependency-source errors before SSH service changes; support scoped signed Debian sources without subscription changes.
+- Fix controlling-terminal streams and preserve saved keys during interrupted guided setup.
+- Report local installation, tunnel readiness and untested product connection separately, with explicit resume instructions after reboot.
+- Retain native runtime supervision; persistent autostart remains separate in PR #4.
+- Prepare reproducible bundles and checksums; no release tag, host deployment or reboot acceptance is implied.
+
 ## v0.2.0 — 2026-10-19
 
 - Translate current documentation and skill instructions to English.
