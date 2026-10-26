@@ -76,6 +76,53 @@ class BootstrapTests(unittest.TestCase):
                                     text=True, capture_output=True, timeout=5)
             self.assertEqual(result.returncode, 0 if arguments == ("--help",) else 2)
 
+    def apt_preflight(self, sources='', *, failure=False, installed=False):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / 'debian.sources'
+            source.write_text('fixture; no real apt invocation')
+            log = root / 'apt-args'
+            bindir = root / 'bin'; bindir.mkdir()
+            for name, body in {
+                'apt-get': 'printf "%s\\n" "$@" >> "$APT_LOG"; exit ' + ('100' if failure else '0'),
+                'dpkg-query': 'printf "' + ('install ok installed' if installed else 'not installed') + '"',
+            }.items():
+                exe = bindir / name; exe.write_text('#!/bin/sh\n' + body + '\n'); exe.chmod(0o700)
+            result = subprocess.run(
+                [BASH, '-c', 'source "$1"; platform=proxmox; prepare_apt', 'test', str(SCRIPT)],
+                env={**os.environ, 'PATH': str(bindir)+os.pathsep+os.environ['PATH'],
+                     'APT_LOG': str(log), 'CODEX_SSH_APT_SOURCES': str(source) if sources == 'valid' else sources},
+                text=True, capture_output=True, timeout=5)
+            return result, log.read_text() if log.exists() else '', source.read_text()
+
+    def test_apt_source_override_applies_without_rewriting_sources(self):
+        result, args, source = self.apt_preflight('valid')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('Dir::Etc::sourcelist=', args)
+        self.assertIn('Dir::Etc::sourceparts=-', args)
+        self.assertIn('APT::Update::Error-Mode=any', args)
+        self.assertEqual(source, 'fixture; no real apt invocation')
+        self.assertNotIn('AllowUnauthenticated', args)
+
+    def test_apt_failure_stops_with_scoped_retry_instructions(self):
+        result, args, _ = self.apt_preflight(failure=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('401', result.stderr)
+        self.assertIn('sudo env CODEX_SSH_APT_SOURCES=', result.stderr)
+        self.assertIn('dependency installation has not started', result.stderr)
+        self.assertNotIn('install', args)
+
+    def test_apt_invalid_override_stops_before_apt(self):
+        for source in ('relative.sources', '/missing-codex-source'):
+            result, args, _ = self.apt_preflight(source)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(args, '')
+
+    def test_apt_not_needed_when_dependencies_already_installed(self):
+        result, args, _ = self.apt_preflight(installed=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(args, '')
+
     @unittest.skipUnless(shutil.which("sshd") and shutil.which("ssh-keygen"),
                          "OpenSSH server/keygen required for config validation")
     def test_effective_sshd_configuration_separates_admin_key_and_user(self):

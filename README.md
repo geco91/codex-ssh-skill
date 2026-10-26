@@ -16,6 +16,12 @@ OpenAI products without a public MCP listener.
 [Download skill ZIP](https://raw.githubusercontent.com/geco91/codex-ssh-skill/v0.2.0/downloads/v0.2.0/codex-ssh.zip) ·
 [SHA-256](downloads/v0.2.0/SHA256SUMS) · [Releases](https://github.com/geco91/codex-ssh-skill/releases)
 
+Main contains the prepared **v0.2.1 installer fixes**, not a published release.
+The stable download/install links below remain on v0.2.0. The candidate's
+`scripts/install.sh` requires the future v0.2.1 tag; for authorized testing from
+this checkout use `bash scripts/setup.sh`. Persistent autostart remains separate
+in PR #4. See [recovery and release status](docs/bootstrap.md#dependency-source-errors-and-phase-by-phase-recovery).
+
 ## How it fits together
 
 ```mermaid

@@ -38,6 +38,44 @@ detect_platform() {
   fi
 }
 
+# Scope source selection to these apt invocations; never rewrite host sources.
+prepare_apt() {
+  apt_options=()
+  if [[ -n ${CODEX_SSH_APT_SOURCES:-} ]]; then
+    [[ "$CODEX_SSH_APT_SOURCES" == /* && -f "$CODEX_SSH_APT_SOURCES" && -r "$CODEX_SSH_APT_SOURCES" ]] || die 'CODEX_SSH_APT_SOURCES must name an existing readable absolute sources file.'
+    apt_options=(-o "Dir::Etc::sourcelist=$CODEX_SSH_APT_SOURCES" -o 'Dir::Etc::sourceparts=-')
+    printf 'APT: using only the operator-selected sources file for this run; host sources are unchanged.\n'
+  elif [[ "$platform" == proxmox ]]; then
+    printf 'APT preflight: enabled PVE/Ceph enterprise repositories may require a subscription and return HTTP 401 even when Debian sources work.\n'
+    apt_recovery
+  fi
+  packages=()
+  for package in ca-certificates curl openssl python3-venv openssh-client openssh-server; do
+    if ! dpkg-query -W -f='${Status}' "$package" 2>/dev/null | grep -qx 'install ok installed'; then
+      packages+=("$package")
+    fi
+  done
+  if [[ ${#packages[@]} -gt 0 ]]; then
+    # Do this before masking services or creating installation paths/identities.
+    if ! apt-get "${apt_options[@]}" -o APT::Update::Error-Mode=any update; then
+      printf 'APT update failed; dependency installation has not started. Check the APT error above (401 may indicate enterprise subscription access).\n' >&2
+      apt_recovery >&2
+      die 'Resolve the source/network/signature error, then retry the same setup. No automatic source or subscription changes.'
+    fi
+  fi
+}
+
+apt_recovery() {
+  cat <<'EOF'
+If /etc/apt/sources.list.d/debian.sources is your approved, signed Debian source,
+retry the same installer with this environment variable on the bash process:
+  sudo env CODEX_SSH_APT_SOURCES=/etc/apt/sources.list.d/debian.sources bash scripts/setup.sh
+For curl | sudo bash, use: curl ... | sudo env CODEX_SSH_APT_SOURCES=/etc/apt/sources.list.d/debian.sources bash
+Use the same installer options as before. This selects sources only for dependency
+installation; it does not disable enterprise repositories or signature checks.
+EOF
+}
+
 base=/opt/codex-ssh
 conf=/etc/codex-ssh
 account=codex-test
@@ -99,7 +137,7 @@ if [[ "$platform" == proxmox ]]; then
   systemctl is-active --quiet ssh.service || die 'Existing Proxmox SSH service not active; inspect manually.'
 fi
 for path in "$base" "$conf" "$account_home" "$unit"; do
-  [[ ! -e "$path" && ! -L "$path" ]] || die "Reserved path already exists: $path; no overwrite."
+  [[ ! -e "$path" && ! -L "$path" ]] || die "Partial or foreign installation at $path; preserved. Inspect locally before retrying; do not delete identities or keys to force a reinstall."
 done
 ! getent passwd "$account" >/dev/null || die 'codex-test account already exists; no changes.'
 ! getent group "$account" >/dev/null || die 'codex-test group already exists; no changes.'
@@ -110,6 +148,9 @@ case "$(dpkg --print-architecture)" in
   arm64) arch=arm64; client_sha=963d0384aaa7c798778479c45673f9051a4039dd891aef8f8978d2a1a628b74f ;;
   *) die 'Only amd64 and arm64 release binaries supported.' ;;
 esac
+
+export DEBIAN_FRONTEND=noninteractive
+prepare_apt
 
 # Avoid Debian starting/enabling a public default SSH listener on fresh install.
 # Never replace an existing service policy or change an existing SSH installation.
@@ -135,20 +176,7 @@ if ! dpkg-query -W -f='${Status}' openssh-server 2>/dev/null | grep -qx 'install
   chmod 755 /usr/sbin/policy-rc.d
   policy_created=true
 fi
-export DEBIAN_FRONTEND=noninteractive
-apt_options=()
-if [[ -n ${CODEX_SSH_APT_SOURCES:-} ]]; then
-  [[ "$CODEX_SSH_APT_SOURCES" == /* && -f "$CODEX_SSH_APT_SOURCES" && -r "$CODEX_SSH_APT_SOURCES" ]] || die 'CODEX_SSH_APT_SOURCES must name an existing readable absolute sources file.'
-  apt_options=(-o "Dir::Etc::sourcelist=$CODEX_SSH_APT_SOURCES" -o 'Dir::Etc::sourceparts=-')
-fi
-packages=()
-for package in ca-certificates curl openssl python3-venv openssh-client openssh-server; do
-  if ! dpkg-query -W -f='${Status}' "$package" 2>/dev/null | grep -qx 'install ok installed'; then
-    packages+=("$package")
-  fi
-done
 if [[ ${#packages[@]} -gt 0 ]]; then
-  apt-get "${apt_options[@]}" update
   apt-get "${apt_options[@]}" install -y --no-upgrade --no-install-recommends "${packages[@]}"
 fi
 if [[ "$new_sshd" == true ]]; then
@@ -296,7 +324,7 @@ Run project tests in the verified guest; preserve unrelated VMs and host config.
 EOF
 chmod 644 "$base/README.txt"
 check_local
-printf '\nNext: runuser -l codex-test\nThen: /opt/codex-ssh/tunnel-client help quickstart\nMCP stdio command: /var/lib/codex-test/mcp/bin/ssh-mcp\nNo tunnel or Codex connection has been configured.\n'
+printf '\nLocal SSH/MCP installation completed and local SSH checked. Tunnel setup is a separate phase.\n'
 if [[ "$platform" == proxmox ]]; then
   printf 'Proxmox detected: provision approved guests through existing qm/API tools; run tests in verified guests, not on this host. No VMs created.\n'
 fi

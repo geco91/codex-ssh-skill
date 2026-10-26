@@ -105,3 +105,55 @@ its absolute path; signature verification stays enabled.
 
 For initial root access use the local console or an already authorized terminal
 connection. This project does not grant itself access to an unassigned machine.
+
+## Dependency source errors and phase-by-phase recovery
+
+On Debian 13 / Proxmox, valid Debian sources can coexist with inaccessible PVE or
+Ceph enterprise repositories. An HTTP 401 from those repositories is an access
+problem, not evidence that Debian sources are broken. When dependencies are
+missing, setup runs a strict APT update before changing SSH service policy or
+creating installation paths and identities. Any repository update error stops
+that phase. It never switches subscriptions or disables signature verification.
+
+If `/etc/apt/sources.list.d/debian.sources` is the operator-approved signed source
+for these Debian dependencies, select it for this run only (keep the original
+setup options):
+
+```bash
+sudo env CODEX_SSH_APT_SOURCES=/etc/apt/sources.list.d/debian.sources bash scripts/setup.sh
+```
+
+For a downloaded installer piped to bash, put `sudo env CODEX_SSH_APT_SOURCES=...`
+on the receiving `bash` command, not on `curl`. As root, omit `sudo`. APT update
+and package installation both use the selected file; global sources remain
+unchanged. Review other APT errors (network, signature, invalid source) on their
+own merits rather than assuming every failure is a subscription problem.
+
+The guide reports three separate phases:
+
+1. Local SSH/MCP installation and a completed local SSH check.
+2. Tunnel process running, healthy and ready, or explicitly skipped/failed.
+3. Product connection **NOT TESTED**. Select the tunnel in the product, enable
+   the skill, discover tools and use a read-only call to verify the assigned host.
+
+After a tunnel error, phase 1 remains complete. Inspect the installed helper's
+`--status` and private native-runtime log, fix the reported cause, then resume with
+`python3 /opt/codex-ssh/configure-tunnel.py`. This reuses the existing state and
+keys; a full reinstall is unnecessary. After an APT failure, retry the same setup
+with the approved source selection. Completed bootstrap installations are checked
+and retained. A failure during the initial bootstrap that leaves reserved paths
+without a completion record still requires local inspection: unknown partial
+files are never deleted, adopted or overwritten to force progress.
+
+This fix is based directly on v0.2.0/main. The two-stream terminal fix overlaps
+with PR #4, but no persistent service or supervisor migration from that PR is
+included. Rebase PR #4 onto this change before reviewing its separate autostart
+scope. Local process/healthy/ready status is not evidence of reboot persistence.
+After reboot, run `python3 /opt/codex-ssh/configure-tunnel.py`, choose reuse and
+then separately verify a read-only MCP call in the intended product.
+
+The v0.2.1 bundles and `scripts/install.sh` are a prepared release candidate.
+The versioned launcher requires a separately published `v0.2.1` tag; merging
+source does not publish that tag or a GitHub Release. Until that step is approved,
+the stable installation links remain on v0.2.0. To validate reviewed source in an
+authorized disposable environment, run `bash scripts/setup.sh` from this checkout.
